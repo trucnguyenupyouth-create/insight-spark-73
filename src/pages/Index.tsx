@@ -1,12 +1,23 @@
+import { useState } from "react";
 import { MetricCard } from "@/components/MetricCard";
 import { StudentTable } from "@/components/StudentTable";
-import { TopicChart } from "@/components/TopicChart";
+import { ErrorAnalysis } from "@/components/ErrorAnalysis";
+import { GroupAnalysis } from "@/components/GroupAnalysis";
 import { ActionSuggestions } from "@/components/ActionSuggestions";
+import { ActionComposer } from "@/components/ActionComposer";
+import { ActionTracker } from "@/components/ActionTracker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Users, GraduationCap, BookOpen, Settings } from "lucide-react";
+import { BarChart3, Users, GraduationCap, BookOpen, Settings, AlertTriangle } from "lucide-react";
+import { generateActionSuggestions, mockClassData } from "@/utils/actionEngine";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<any>(null);
+  const [composerRecipients, setComposerRecipients] = useState<any[]>([]);
+  const { toast } = useToast();
+
   // Mock data - in a real app, this would come from an API
   const classMetrics = {
     totalStudents: 40,
@@ -25,40 +36,219 @@ const Index = () => {
     { id: "6", name: "Đặng Thị Phượng", score: 3.2, riskScore: 85, progress: -0.8, group: "Yếu" as const },
   ];
 
-  const topics = [
-    { name: "Phương trình bậc hai", masteryRate: 95, difficulty: "Trung bình" as const },
-    { name: "Hệ phương trình", masteryRate: 82, difficulty: "Khó" as const },
-    { name: "Bất đẳng thức", masteryRate: 45, difficulty: "Khó" as const },
-    { name: "Hình học không gian", masteryRate: 38, difficulty: "Khó" as const },
-    { name: "Đại số cơ bản", masteryRate: 88, difficulty: "Dễ" as const },
-  ];
-
-  const suggestions = [
+  // Enhanced error analysis data
+  const commonErrors = [
     {
       id: "1",
-      type: "urgent" as const,
-      title: "Lớp học yếu về Hình học không gian",
-      description: "38% học sinh nắm vững - cần giảng dạy lại lý thuyết cơ bản",
-      action: "Gửi tài liệu hình học",
-      icon: "alert" as const
+      tag: "Nhầm lẫn chân kề/chân đối",
+      count: 15,
+      percentage: 37.5,
+      severity: "high" as const,
+      example: "sin30° = chân đối/chân kề (sai) → sin30° = chân đối/cạnh huyền (đúng)",
+      affectedStudents: ["Trần Thị Bình", "Lê Văn Cường", "Phạm Thị Dung"],
+      questionIds: [3, 7, 12]
     },
     {
       id: "2", 
-      type: "important" as const,
-      title: "6 học sinh có nguy cơ học yếu",
-      description: "Risk score > 70% - cần can thiệp hỗ trợ cá nhân",
-      action: "Tạo kế hoạch hỗ trợ",
-      icon: "users" as const
+      tag: "Sai dấu khi chuyển vế",
+      count: 8,
+      percentage: 20,
+      severity: "medium" as const,
+      example: "2x = 6 → x = 6 + 2 (sai) → x = 6 - 2 (đúng)",
+      affectedStudents: ["Hoàng Văn Em", "Đặng Thị Phượng"],
+      questionIds: [5, 9]
     },
     {
       id: "3",
-      type: "improvement" as const,
-      title: "Lớp tiến bộ về Phương trình bậc hai",
-      description: "95% nắm vững - có thể nâng cao độ khó bài tập",
-      action: "Giao bài tập nâng cao",
-      icon: "trend" as const
+      tag: "Quên đổi đơn vị",
+      count: 6,
+      percentage: 15,
+      severity: "low" as const,
+      example: "Tính từ mm nhưng không đổi ra m",
+      affectedStudents: ["Nguyễn Văn An", "Lê Văn Cường"],
+      questionIds: [2, 11]
     }
   ];
+
+  // Student groups analysis
+  const studentGroups = [
+    {
+      id: "1",
+      name: "Nhóm Giỏi",
+      level: "Giỏi" as const,
+      count: 8,
+      percentage: 20,
+      averageScore: 8.9,
+      commonErrors: ["Tính toán cẩu thả"],
+      knowledgeGaps: [],
+      riskLevel: "low" as const
+    },
+    {
+      id: "2",
+      name: "Nhóm Khá", 
+      level: "Khá" as const,
+      count: 15,
+      percentage: 37.5,
+      averageScore: 7.2,
+      commonErrors: ["Nhầm công thức", "Sai dấu"],
+      knowledgeGaps: ["Lượng giác nâng cao"],
+      riskLevel: "medium" as const
+    },
+    {
+      id: "3",
+      name: "Nhóm TB",
+      level: "TB" as const,
+      count: 12,
+      percentage: 30,
+      averageScore: 5.8,
+      commonErrors: ["Không nhớ công thức", "Sai bước giải"],
+      knowledgeGaps: ["Hình học không gian", "Phương trình bậc cao"],
+      riskLevel: "medium" as const
+    },
+    {
+      id: "4",
+      name: "Nhóm Yếu",
+      level: "Yếu" as const,
+      count: 5,
+      percentage: 12.5,
+      averageScore: 3.2,
+      commonErrors: ["Không hiểu đề", "Thiếu kiến thức nền"],
+      knowledgeGaps: ["Đại số cơ bản", "Hình học phẳng", "Lượng giác"],
+      riskLevel: "high" as const
+    }
+  ];
+
+  // Generate smart suggestions using the action engine
+  const suggestions = generateActionSuggestions(mockClassData);
+
+  // Mock tracking data
+  const sentActions = [
+    {
+      id: "1",
+      type: "class" as const,
+      subject: "Thông báo: Lỗi sai phổ biến về lượng giác",
+      content: "Chào cả lớp, cô thấy nhiều em nhầm lẫn chân kề và chân đối...",
+      recipients: ["all"],
+      recipientNames: ["Cả lớp 9A2"],
+      sentAt: "2025-08-14T08:30:00Z",
+      status: "delivered" as const,
+      canRevoke: true
+    },
+    {
+      id: "2",
+      type: "parent" as const,
+      subject: "Cập nhật học tập của em Phạm Thị Dung",
+      content: "Chào Anh/Chị, em Dung cần hỗ trợ thêm về kiến thức cơ bản...",
+      recipients: ["parent_4"],
+      recipientNames: ["Phụ huynh Phạm Thị Dung"],
+      sentAt: "2025-08-14T09:15:00Z",
+      status: "read" as const,
+      canRevoke: false
+    }
+  ];
+
+  const studentProgress = [
+    {
+      studentId: "4",
+      studentName: "Phạm Thị Dung",
+      assignedTasks: [
+        {
+          id: "1",
+          title: "Bài tập lượng giác cơ bản",
+          status: "in_progress" as const,
+          assignedAt: "2025-08-14T10:00:00Z"
+        },
+        {
+          id: "2", 
+          title: "Video ôn tập chân kề/chân đối",
+          status: "completed" as const,
+          assignedAt: "2025-08-14T10:00:00Z",
+          completedAt: "2025-08-14T11:30:00Z",
+          score: 7
+        }
+      ]
+    },
+    {
+      studentId: "5",
+      studentName: "Hoàng Văn Em",
+      assignedTasks: [
+        {
+          id: "3",
+          title: "Luyện tập đổi dấu",
+          status: "pending" as const,
+          assignedAt: "2025-08-14T10:00:00Z"
+        }
+      ]
+    }
+  ];
+
+  // Event handlers
+  const handleErrorClick = (error: any) => {
+    const recipients = error.affectedStudents.map((name: string, index: number) => ({
+      id: `student_${index}`,
+      name,
+      type: "student" as const
+    }));
+    
+    setComposerRecipients(recipients);
+    setSelectedSuggestion({
+      context: {
+        errorTag: error.tag,
+        topic: "Lượng giác",
+        studentNames: error.affectedStudents
+      }
+    });
+    setIsComposerOpen(true);
+  };
+
+  const handleGroupClick = (group: any) => {
+    toast({
+      title: "Phân tích nhóm",
+      description: `Đang phân tích chi tiết nhóm ${group.level} (${group.count} học sinh)`,
+      variant: "default"
+    });
+  };
+
+  const handleActionClick = (suggestion: any) => {
+    toast({
+      title: "Thực hiện hành động", 
+      description: suggestion.title,
+      variant: "default"
+    });
+  };
+
+  const handleComposeAction = (suggestion: any) => {
+    // Determine recipients based on suggestion type
+    let recipients: any[] = [];
+    
+    if (suggestion.triggerRule === "common_error_30_percent") {
+      recipients = [{ id: "all", name: "Cả lớp 9A2", type: "class" }];
+    } else if (suggestion.triggerRule === "group_specific_error") {
+      recipients = [{ id: "group_weak", name: "Nhóm Yếu", type: "group" }];
+    } else {
+      recipients = [{ id: "student_1", name: "Học sinh cần can thiệp", type: "student" }];
+    }
+
+    setComposerRecipients(recipients);
+    setSelectedSuggestion(suggestion);
+    setIsComposerOpen(true);
+  };
+
+  const handleSendMessage = (message: any) => {
+    toast({
+      title: "Đã gửi thành công",
+      description: `Tin nhắn "${message.subject}" đã được gửi`,
+      variant: "default"
+    });
+  };
+
+  const handleRevokeAction = (actionId: string) => {
+    toast({
+      title: "Đã thu hồi",
+      description: "Hành động đã được thu hồi thành công",
+      variant: "default"
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-bg">
@@ -145,26 +335,73 @@ const Index = () => {
               <StudentTable students={students} />
             </div>
 
-            {/* Topic Analysis */}
+            {/* Error Analysis */}
             <div>
               <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <BookOpen className="w-5 h-5 mr-2 text-primary" />
-                Phân tích theo chủ đề
+                <AlertTriangle className="w-5 h-5 mr-2 text-primary" />
+                Phân tích lỗi sai
               </h2>
-              <TopicChart topics={topics} />
+              <ErrorAnalysis 
+                errors={commonErrors} 
+                totalStudents={classMetrics.totalStudents}
+                onErrorClick={handleErrorClick}
+              />
+            </div>
+
+            {/* Group Analysis */}
+            <div>
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Users className="w-5 h-5 mr-2 text-primary" />
+                Phân tích nhóm học sinh
+              </h2>
+              <GroupAnalysis 
+                groups={studentGroups}
+                totalStudents={classMetrics.totalStudents}
+                onGroupClick={handleGroupClick}
+              />
             </div>
           </div>
 
           {/* Right Column */}
-          <div>
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <BarChart3 className="w-5 h-5 mr-2 text-primary" />
-              Hành động đề xuất
-            </h2>
-            <ActionSuggestions suggestions={suggestions} />
+          <div className="space-y-8">
+            {/* Action Suggestions */}
+            <div>
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <BarChart3 className="w-5 h-5 mr-2 text-primary" />
+                Hành động đề xuất
+              </h2>
+              <ActionSuggestions 
+                suggestions={suggestions}
+                onActionClick={handleActionClick}
+                onComposeAction={handleComposeAction}
+              />
+            </div>
+
+            {/* Action Tracker */}
+            <div>
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <BarChart3 className="w-5 h-5 mr-2 text-primary" />
+                Theo dõi hành động
+              </h2>
+              <ActionTracker
+                sentActions={sentActions}
+                studentProgress={studentProgress}
+                onRevoke={handleRevokeAction}
+                onViewDetails={(id) => toast({ title: "Chi tiết", description: `Xem chi tiết hành động ${id}` })}
+              />
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Action Composer Modal */}
+      <ActionComposer
+        isOpen={isComposerOpen}
+        onClose={() => setIsComposerOpen(false)}
+        recipients={composerRecipients}
+        context={selectedSuggestion?.context}
+        onSend={handleSendMessage}
+      />
     </div>
   );
 };
