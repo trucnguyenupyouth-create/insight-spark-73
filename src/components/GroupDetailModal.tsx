@@ -161,7 +161,6 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
                           <span className="text-sm font-medium">{student.score}</span>
                           <Badge 
                             variant="outline" 
-                            size="sm"
                             className={getRiskColor(student.riskScore)}
                           >
                             {student.riskScore}%

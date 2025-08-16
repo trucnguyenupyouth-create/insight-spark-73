@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, Users, TrendingUp, Eye } from "lucide-react";
+import { ErrorStudentDetailModal } from "./ErrorStudentDetailModal";
 
 interface CommonError {
   id: string;
@@ -17,11 +19,18 @@ interface CommonError {
 
 interface ErrorAnalysisProps {
   errors: CommonError[];
-  totalStudents: number;
+  totalStudents?: number;
   onErrorClick?: (error: CommonError) => void;
 }
 
 export function ErrorAnalysis({ errors, totalStudents, onErrorClick }: ErrorAnalysisProps) {
+  const [selectedError, setSelectedError] = useState<CommonError | null>(null);
+  const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+
+  const handleViewStudents = (error: CommonError) => {
+    setSelectedError(error);
+    setIsStudentModalOpen(true);
+  };
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case "high": return "danger";
@@ -106,14 +115,32 @@ export function ErrorAnalysis({ errors, totalStudents, onErrorClick }: ErrorAnal
                       Ví dụ: "{error.example}"
                     </p>
                     
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="mt-2 text-primary hover:text-primary-dark"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Xem chi tiết {error.count} học sinh
-                    </Button>
+                    <div className="space-x-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewStudents(error);
+                        }}
+                        className="text-xs text-primary hover:text-primary-dark"
+                      >
+                        <Users className="w-3 h-3 mr-1" />
+                        Xem chi tiết học sinh
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onErrorClick?.(error);
+                        }}
+                        className="text-xs text-primary hover:text-primary-dark"
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        Xem chi tiết
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -128,6 +155,15 @@ export function ErrorAnalysis({ errors, totalStudents, onErrorClick }: ErrorAnal
           </div>
         )}
       </div>
+
+      <ErrorStudentDetailModal
+        error={selectedError}
+        isOpen={isStudentModalOpen}
+        onClose={() => {
+          setIsStudentModalOpen(false);
+          setSelectedError(null);
+        }}
+      />
     </Card>
   );
 }

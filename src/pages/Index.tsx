@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { MetricCard } from "@/components/MetricCard";
-import { StudentTable } from "@/components/StudentTable";
+import { TopicChart } from "@/components/TopicChart";
 import { ErrorAnalysis } from "@/components/ErrorAnalysis";
 import { GroupAnalysis } from "@/components/GroupAnalysis";
+import { KnowledgeGapAnalysis } from "@/components/KnowledgeGapAnalysis";
 import { ActionSuggestions } from "@/components/ActionSuggestions";
 import { ActionComposer } from "@/components/ActionComposer";
 import { ActionTracker } from "@/components/ActionTracker";
+import { ErrorDetailModal } from "@/components/ErrorDetailModal";
+import { GroupDetailModal } from "@/components/GroupDetailModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Users, GraduationCap, BookOpen, Settings, AlertTriangle } from "lucide-react";
+import { BarChart3, Users, GraduationCap, BookOpen, Settings, AlertTriangle, Brain } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { generateActionSuggestions, mockClassData } from "@/utils/actionEngine";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,7 +20,12 @@ const Index = () => {
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = useState<any>(null);
   const [composerRecipients, setComposerRecipients] = useState<any[]>([]);
+  const [selectedError, setSelectedError] = useState<any>(null);
+  const [selectedGroup, setSelectedGroup] = useState<any>(null);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Mock data - in a real app, this would come from an API
   const classMetrics = {
@@ -27,13 +36,92 @@ const Index = () => {
     attendanceRate: 95
   };
 
+  // Mock student data for backward compatibility
   const students = [
-    { id: "1", name: "Nguyễn Văn An", score: 9.5, riskScore: 10, progress: +1.2, group: "Giỏi" as const },
-    { id: "2", name: "Trần Thị Bình", score: 8.8, riskScore: 15, progress: +0.8, group: "Giỏi" as const },
-    { id: "3", name: "Lê Văn Cường", score: 7.5, riskScore: 25, progress: +0.3, group: "Khá" as const },
-    { id: "4", name: "Phạm Thị Dung", score: 6.2, riskScore: 45, progress: -0.5, group: "TB" as const },
-    { id: "5", name: "Hoàng Văn Em", score: 4.8, riskScore: 75, progress: -1.2, group: "Yếu" as const },
-    { id: "6", name: "Đặng Thị Phượng", score: 3.2, riskScore: 85, progress: -0.8, group: "Yếu" as const },
+    { 
+      id: "1", 
+      name: "Nguyễn Văn An", 
+      score: 9.5, 
+      riskScore: 10, 
+      progress: +1.2, 
+      group: "Giỏi" as const,
+      studentId: "HS001",
+      averageScore: 9.5,
+      scoreHistory: [{ test: "Kiểm tra 1", score: 9.2 }, { test: "Kiểm tra 2", score: 9.8 }],
+      riskBreakdown: { averageScore: 9.5, severity: 10, trend: 1.2, total: 20.7 },
+      questionResults: [],
+      progressSteps: []
+    },
+    { 
+      id: "2", 
+      name: "Trần Thị Bình", 
+      score: 8.8, 
+      riskScore: 15, 
+      progress: +0.8, 
+      group: "Giỏi" as const,
+      studentId: "HS002",
+      averageScore: 8.8,
+      scoreHistory: [{ test: "Kiểm tra 1", score: 8.5 }, { test: "Kiểm tra 2", score: 9.1 }],
+      riskBreakdown: { averageScore: 8.8, severity: 15, trend: 0.8, total: 24.6 },
+      questionResults: [],
+      progressSteps: []
+    },
+    { 
+      id: "3", 
+      name: "Lê Văn Cường", 
+      score: 7.5, 
+      riskScore: 25, 
+      progress: +0.3, 
+      group: "Khá" as const,
+      studentId: "HS003",
+      averageScore: 7.5,
+      scoreHistory: [{ test: "Kiểm tra 1", score: 7.2 }, { test: "Kiểm tra 2", score: 7.8 }],
+      riskBreakdown: { averageScore: 7.5, severity: 25, trend: 0.3, total: 32.8 },
+      questionResults: [],
+      progressSteps: []
+    },
+    { 
+      id: "4", 
+      name: "Phạm Thị Dung", 
+      score: 6.2, 
+      riskScore: 45, 
+      progress: -0.5, 
+      group: "TB" as const,
+      studentId: "HS004",
+      averageScore: 6.2,
+      scoreHistory: [{ test: "Kiểm tra 1", score: 6.7 }, { test: "Kiểm tra 2", score: 5.7 }],
+      riskBreakdown: { averageScore: 6.2, severity: 45, trend: -0.5, total: 50.7 },
+      questionResults: [],
+      progressSteps: []
+    },
+    { 
+      id: "5", 
+      name: "Hoàng Văn Em", 
+      score: 4.8, 
+      riskScore: 75, 
+      progress: -1.2, 
+      group: "Yếu" as const,
+      studentId: "HS005",
+      averageScore: 4.8,
+      scoreHistory: [{ test: "Kiểm tra 1", score: 6.0 }, { test: "Kiểm tra 2", score: 3.6 }],
+      riskBreakdown: { averageScore: 4.8, severity: 75, trend: -1.2, total: 78.6 },
+      questionResults: [],
+      progressSteps: []
+    },
+    { 
+      id: "6", 
+      name: "Đặng Thị Phượng", 
+      score: 3.2, 
+      riskScore: 85, 
+      progress: -0.8, 
+      group: "Yếu" as const,
+      studentId: "HS006",
+      averageScore: 3.2,
+      scoreHistory: [{ test: "Kiểm tra 1", score: 4.0 }, { test: "Kiểm tra 2", score: 2.4 }],
+      riskBreakdown: { averageScore: 3.2, severity: 85, trend: -0.8, total: 88 },
+      questionResults: [],
+      progressSteps: []
+    },
   ];
 
   // Enhanced error analysis data
@@ -118,6 +206,14 @@ const Index = () => {
     }
   ];
 
+  // Mock topic data for knowledge mastery
+  const mockTopics = [
+    { name: "Định nghĩa sin/cos/tan", masteryRate: 75, difficulty: "Dễ" as const },
+    { name: "Tỉ số cạnh đối/chân kề/huyền", masteryRate: 62, difficulty: "Trung bình" as const },
+    { name: "Bài toán vận dụng", masteryRate: 45, difficulty: "Khó" as const },
+    { name: "Góc và cung", masteryRate: 58, difficulty: "Trung bình" as const }
+  ];
+
   // Generate smart suggestions using the action engine
   const suggestions = generateActionSuggestions(mockClassData);
 
@@ -184,29 +280,13 @@ const Index = () => {
 
   // Event handlers
   const handleErrorClick = (error: any) => {
-    const recipients = error.affectedStudents.map((name: string, index: number) => ({
-      id: `student_${index}`,
-      name,
-      type: "student" as const
-    }));
-    
-    setComposerRecipients(recipients);
-    setSelectedSuggestion({
-      context: {
-        errorTag: error.tag,
-        topic: "Lượng giác",
-        studentNames: error.affectedStudents
-      }
-    });
-    setIsComposerOpen(true);
+    setSelectedError(error);
+    setIsErrorModalOpen(true);
   };
 
   const handleGroupClick = (group: any) => {
-    toast({
-      title: "Phân tích nhóm",
-      description: `Đang phân tích chi tiết nhóm ${group.level} (${group.count} học sinh)`,
-      variant: "default"
-    });
+    setSelectedGroup(group);
+    setIsGroupModalOpen(true);
   };
 
   const handleActionClick = (suggestion: any) => {
@@ -326,27 +406,18 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Student Rankings */}
-            <div>
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <Users className="w-5 h-5 mr-2 text-primary" />
-                Bảng xếp hạng học sinh
-              </h2>
-              <StudentTable students={students} />
-            </div>
-
-            {/* Error Analysis */}
-            <div>
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <AlertTriangle className="w-5 h-5 mr-2 text-primary" />
-                Phân tích lỗi sai
-              </h2>
+            {/* Topic Mastery & Error Analysis */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <TopicChart topics={mockTopics} />
               <ErrorAnalysis 
                 errors={commonErrors} 
                 totalStudents={classMetrics.totalStudents}
                 onErrorClick={handleErrorClick}
               />
             </div>
+
+            {/* Knowledge Gap Analysis */}
+            <KnowledgeGapAnalysis topics={[]} />
 
             {/* Group Analysis */}
             <div>
@@ -364,14 +435,32 @@ const Index = () => {
 
           {/* Right Column */}
           <div className="space-y-8">
-            {/* Action Suggestions */}
+            {/* Action Entry */}
             <div>
               <h2 className="text-xl font-semibold mb-4 flex items-center">
                 <BarChart3 className="w-5 h-5 mr-2 text-primary" />
-                Hành động đề xuất
+                Hành động giáo dục
+              </h2>
+              <div className="flex justify-center">
+                <Button 
+                  onClick={() => navigate("/action-flow")}
+                  className="w-full h-auto p-6 flex-col space-y-2"
+                  size="lg"
+                >
+                  <div className="text-lg font-semibold">Trung tâm hành động</div>
+                  <div className="text-sm opacity-90">Tạo và theo dõi các can thiệp giáo dục</div>
+                </Button>
+              </div>
+            </div>
+
+            {/* Quick Action Suggestions */}
+            <div>
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <AlertTriangle className="w-5 h-5 mr-2 text-primary" />
+                Gợi ý nhanh
               </h2>
               <ActionSuggestions 
-                suggestions={suggestions}
+                suggestions={suggestions.slice(0, 3)}
                 onActionClick={handleActionClick}
                 onComposeAction={handleComposeAction}
               />
@@ -401,6 +490,40 @@ const Index = () => {
         recipients={composerRecipients}
         context={selectedSuggestion?.context}
         onSend={handleSendMessage}
+      />
+
+      {/* Error Detail Modal */}
+      <ErrorDetailModal
+        error={selectedError}
+        isOpen={isErrorModalOpen}
+        onClose={() => {
+          setIsErrorModalOpen(false);
+          setSelectedError(null);
+        }}
+        onAction={(actionType, error) => {
+          toast({
+            title: "Hành động đã tạo",
+            description: `Đã tạo ${actionType} cho lỗi: ${error.tag}`,
+            variant: "default"
+          });
+        }}
+      />
+
+      {/* Group Detail Modal */}
+      <GroupDetailModal
+        group={selectedGroup}
+        isOpen={isGroupModalOpen}
+        onClose={() => {
+          setIsGroupModalOpen(false);
+          setSelectedGroup(null);
+        }}
+        onAction={(actionType, group) => {
+          toast({
+            title: "Hành động đã tạo",
+            description: `Đã tạo ${actionType} cho ${group.name}`,
+            variant: "default"
+          });
+        }}
       />
     </div>
   );
