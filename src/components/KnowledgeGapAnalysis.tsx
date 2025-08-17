@@ -41,7 +41,7 @@ const mockTopics: KnowledgeTopic[] = [
   {
     id: "topic_1",
     name: "Định nghĩa sin/cos/tan",
-    masteryRate: 42,
+    masteryRate: 72,
     questions: ["Câu 1", "Câu 3", "Câu 7"],
     studentsWithGaps: [
       {
@@ -50,7 +50,7 @@ const mockTopics: KnowledgeTopic[] = [
         deficitPercentage: 85,
         questionsCorrect: ["Câu 1"],
         questionsIncorrect: ["Câu 3", "Câu 7"],
-        examples: ["sin30° = √3/2 (sai, đúng là 1/2)"],
+        examples: ["sin30° = \\frac{\\sqrt{3}}{2} (sai, đúng là \\frac{1}{2})", "cos60° = \\frac{1}{3} (sai, đúng là \\frac{1}{2})"],
         group: "Yếu"
       },
       {
@@ -59,7 +59,7 @@ const mockTopics: KnowledgeTopic[] = [
         deficitPercentage: 67,
         questionsCorrect: ["Câu 1", "Câu 3"],
         questionsIncorrect: ["Câu 7"],
-        examples: ["cos45° = 1 (sai, đúng là √2/2)"],
+        examples: ["cos45° = 1 (sai, đúng là \\frac{\\sqrt{2}}{2})"],
         group: "TB"
       }
     ]
@@ -67,7 +67,7 @@ const mockTopics: KnowledgeTopic[] = [
   {
     id: "topic_2",
     name: "Tỉ số cạnh đối/cạnh kề/huyền",
-    masteryRate: 38.5,
+    masteryRate: 58.5,
     questions: ["Câu 2", "Câu 4", "Câu 5"],
     studentsWithGaps: [
       {
@@ -76,31 +76,70 @@ const mockTopics: KnowledgeTopic[] = [
         deficitPercentage: 75,
         questionsCorrect: ["Câu 2"],
         questionsIncorrect: ["Câu 4", "Câu 5"],
-        examples: ["Nhầm cạnh kề với cạnh đối trong tam giác vuông"],
+        examples: ["Nhầm cạnh kề với cạnh đối trong tam giác vuông", "sin\\alpha = \\frac{cạnh kề}{huyền} (sai, đúng là \\frac{cạnh đối}{huyền})"],
         group: "Yếu"
+      },
+      {
+        id: "hs004",
+        name: "Phạm Thị Dung", 
+        deficitPercentage: 60,
+        questionsCorrect: ["Câu 2", "Câu 4"],
+        questionsIncorrect: ["Câu 5"],
+        examples: ["tan\\alpha = \\frac{cạnh đối}{cạnh kề} nhưng tính ngược"],
+        group: "TB"
       }
     ]
   },
   {
     id: "topic_3",
     name: "Tìm cạnh bằng sin/cos/tan",
-    masteryRate: 31,
+    masteryRate: 45,
     questions: ["Câu 6", "Câu 8"],
-    studentsWithGaps: []
+    studentsWithGaps: [
+      {
+        id: "hs005",
+        name: "Hoàng Văn E",
+        deficitPercentage: 80,
+        questionsCorrect: [],
+        questionsIncorrect: ["Câu 6", "Câu 8"],
+        examples: ["a = b \\cdot sin(30°) nhưng quên tính sin(30°) = 0.5"],
+        group: "Yếu"
+      }
+    ]
   },
   {
     id: "topic_4", 
     name: "Tìm góc bằng arctrig",
     masteryRate: 28,
     questions: ["Câu 9", "Câu 10"],
-    studentsWithGaps: []
+    studentsWithGaps: [
+      {
+        id: "hs006",
+        name: "Vũ Thị Giang",
+        deficitPercentage: 90,
+        questionsCorrect: [],
+        questionsIncorrect: ["Câu 9", "Câu 10"],
+        examples: ["\\alpha = arcsin(0.5) = 60° (sai, đúng là 30°)"],
+        group: "Yếu"
+      }
+    ]
   },
   {
     id: "topic_5",
     name: "Bài toán vận dụng (ứng dụng)",
     masteryRate: 22,
     questions: ["Câu 11", "Câu 12"],
-    studentsWithGaps: []
+    studentsWithGaps: [
+      {
+        id: "hs007",
+        name: "Đỗ Văn H",
+        deficitPercentage: 95,
+        questionsCorrect: [],
+        questionsIncorrect: ["Câu 11", "Câu 12"],
+        examples: ["Chiều cao tòa nhà = khoảng cách × tan(góc) nhưng không xác định được góc nào"],
+        group: "Yếu"
+      }
+    ]
   }
 ];
 
@@ -108,21 +147,55 @@ const mockQuestionDetails: { [key: string]: QuestionDetail[] } = {
   "topic_1": [
     {
       questionNumber: "Câu 1",
-      correctRate: 65,
-      studentsIncorrect: ["Nguyễn Văn An", "Trần Thị Bình"],
-      knowledgeExample: "Tính sin30°, cos60°, tan45°"
+      correctRate: 85,
+      studentsIncorrect: ["Nguyễn Văn An", "Hoàng Văn E"],
+      knowledgeExample: "Tính sin30°, cos60°, tan45° - Các giá trị lượng giác đặc biệt"
     },
     {
       questionNumber: "Câu 3", 
-      correctRate: 35,
+      correctRate: 65,
       studentsIncorrect: ["Nguyễn Văn An", "Lê Văn Cường", "Phạm Thị Dung"],
-      knowledgeExample: "So sánh các giá trị lượng giác"
+      knowledgeExample: "So sánh các giá trị lượng giác: sin30° < cos30° hay ngược lại?"
     },
     {
       questionNumber: "Câu 7",
-      correctRate: 28,
+      correctRate: 45,
       studentsIncorrect: ["Nguyễn Văn An", "Trần Thị Bình", "Hoàng Văn E", "Vũ Thị Giang"],
-      knowledgeExample: "Ứng dụng định nghĩa trong bài toán thực tế"
+      knowledgeExample: "Ứng dụng định nghĩa trong bài toán thực tế - tính chiều cao cột cờ"
+    }
+  ],
+  "topic_2": [
+    {
+      questionNumber: "Câu 2",
+      correctRate: 75,
+      studentsIncorrect: ["Lê Văn Cường", "Vũ Thị Giang"],
+      knowledgeExample: "Xác định cạnh đối, cạnh kề trong tam giác vuông"
+    },
+    {
+      questionNumber: "Câu 4",
+      correctRate: 50,
+      studentsIncorrect: ["Lê Văn Cường", "Phạm Thị Dung", "Hoàng Văn E"],
+      knowledgeExample: "Tỉ số lượng giác của góc nhọn trong tam giác vuông"
+    },
+    {
+      questionNumber: "Câu 5",
+      correctRate: 40,
+      studentsIncorrect: ["Lê Văn Cường", "Phạm Thị Dung", "Vũ Thị Giang", "Đỗ Văn H"],
+      knowledgeExample: "Áp dụng tỉ số lượng giác để tính độ dài cạnh"
+    }
+  ],
+  "topic_3": [
+    {
+      questionNumber: "Câu 6",
+      correctRate: 55,
+      studentsIncorrect: ["Hoàng Văn E", "Vũ Thị Giang", "Đỗ Văn H"],
+      knowledgeExample: "Tìm cạnh trong tam giác vuông khi biết một góc và một cạnh"
+    },
+    {
+      questionNumber: "Câu 8",
+      correctRate: 35,
+      studentsIncorrect: ["Hoàng Văn E", "Vũ Thị Giang", "Đỗ Văn H", "Nguyễn Văn An"],
+      knowledgeExample: "Sử dụng sin, cos, tan để giải bài toán hình học"
     }
   ]
 };
@@ -160,47 +233,48 @@ export function KnowledgeGapAnalysis({ topics = mockTopics }: KnowledgeGapAnalys
         <div className="space-y-6">
           <div className="flex items-center space-x-2">
             <Brain className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-semibold">Thống kê kiến thức hổng</h3>
+            <h3 className="text-lg font-semibold">Tỷ lệ nắm vững theo chủ đề</h3>
           </div>
           
           <div className="space-y-4">
             {topics.map((topic) => (
-              <div key={topic.id} className="space-y-3">
+              <div key={topic.id} className="space-y-3 p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors">
                 <div className="flex justify-between items-center">
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{topic.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Các câu: {topic.questions.join(", ")}
+                    <p className="font-semibold text-base">{topic.name}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Các câu xuất hiện: {topic.questions.join(", ")}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className={cn(
-                      "font-bold text-sm",
+                      "font-bold text-lg",
                       getMasteryColor(topic.masteryRate) === "success" && "text-success",
                       getMasteryColor(topic.masteryRate) === "warning" && "text-warning",
                       getMasteryColor(topic.masteryRate) === "danger" && "text-danger"
                     )}>
                       {topic.masteryRate}%
                     </p>
+                    <p className="text-xs text-muted-foreground">Độ nắm vững</p>
                   </div>
                 </div>
                 
                 <Progress 
                   value={topic.masteryRate} 
                   className={cn(
-                    "h-2",
+                    "h-3",
                     getMasteryColor(topic.masteryRate) === "success" && "[&>div]:bg-success",
                     getMasteryColor(topic.masteryRate) === "warning" && "[&>div]:bg-warning", 
                     getMasteryColor(topic.masteryRate) === "danger" && "[&>div]:bg-danger"
                   )}
                 />
                 
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline" 
                     size="sm"
                     onClick={() => handleQuestionDetailsClick(topic)}
-                    className="text-xs"
+                    className="text-xs flex-1 sm:flex-initial"
                   >
                     <FileText className="w-3 h-3 mr-1" />
                     Xem chi tiết hổng kiến thức
@@ -210,7 +284,8 @@ export function KnowledgeGapAnalysis({ topics = mockTopics }: KnowledgeGapAnalys
                     variant="outline"
                     size="sm" 
                     onClick={() => handleTopicClick(topic)}
-                    className="text-xs"
+                    className="text-xs flex-1 sm:flex-initial"
+                    disabled={topic.studentsWithGaps.length === 0}
                   >
                     <Users className="w-3 h-3 mr-1" />
                     Xem các học sinh hổng kiến thức ({topic.studentsWithGaps.length})

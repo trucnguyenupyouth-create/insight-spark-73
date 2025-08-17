@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { Users, TrendingUp, AlertTriangle, FileText, MessageSquare } from "lucide-react";
+import { Users, TrendingUp, AlertTriangle, FileText, MessageSquare, User } from "lucide-react";
+import { StudentProfileModal } from "./StudentProfileModal";
 
-interface Student {
+interface GroupStudent {
   id: string;
   name: string;
   score: number;
@@ -14,10 +16,40 @@ interface Student {
   group: string;
 }
 
+interface Student {
+  id: string;
+  name: string;
+  score: number;
+  riskScore: number;
+  progress: number;
+  group: "Giỏi" | "Khá" | "TB" | "Yếu";
+  studentId: string;
+  averageScore: number;
+  scoreHistory: Array<{ test: string; score: number }>;
+  riskBreakdown: {
+    averageScore: number;
+    severity: number;
+    trend: number;
+    total: number;
+  };
+  questionResults: Array<{
+    question: number;
+    score: number;
+    maxScore: number;
+    status: "correct" | "incorrect" | "partial";
+    topic: string;
+  }>;
+  progressSteps: Array<{
+    step: string;
+    score: number;
+    maxScore: number;
+  }>;
+}
+
 interface GroupDetailModalProps {
   group: {
     name: string;
-    students: Student[];
+    students: GroupStudent[];
     averageScore: number;
     riskLevel: string;
   } | null;
@@ -92,6 +124,9 @@ const mockGroupData = {
 };
 
 export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDetailModalProps) {
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [showStudentProfile, setShowStudentProfile] = useState(false);
+  
   if (!group) return null;
 
   const groupData = mockGroupData["Yếu"];
@@ -114,6 +149,43 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
   const handleAction = (actionType: string) => {
     onAction?.(actionType, groupData);
     onClose();
+  };
+
+  const handleStudentClick = (student: GroupStudent) => {
+    // Enhance student data with required fields for StudentProfileModal
+    const enhancedStudent: Student = {
+      ...student,
+      progress: -2.5,
+      studentId: student.id.toUpperCase(),
+      averageScore: student.score * 10, // Convert to percentage
+      group: student.group as "Giỏi" | "Khá" | "TB" | "Yếu",
+      scoreHistory: [
+        { test: "Bài 1", score: student.score * 8 },
+        { test: "Bài 2", score: student.score * 12 },
+        { test: "Bài 3", score: student.score * 9 },
+        { test: "Bài 4", score: student.score * 11 },
+        { test: "Bài 5", score: student.score * 10 }
+      ],
+      riskBreakdown: {
+        averageScore: (100 - student.score * 10) * 0.5,
+        severity: student.riskScore * 0.3,
+        trend: 8.0,
+        total: student.riskScore
+      },
+      questionResults: [
+        { question: 1, score: student.score > 4 ? 2 : 0, maxScore: 2, status: (student.score > 4 ? "correct" : "incorrect") as "correct" | "incorrect", topic: "Lượng giác" },
+        { question: 2, score: student.score > 3 ? 2 : 0, maxScore: 2, status: (student.score > 3 ? "correct" : "incorrect") as "correct" | "incorrect", topic: "Hình học" },
+        { question: 3, score: student.score > 2.5 ? 1.5 : 0, maxScore: 2, status: (student.score > 2.5 ? "partial" : "incorrect") as "partial" | "incorrect", topic: "Đại số" }
+      ],
+      progressSteps: [
+        { step: "Bước 4: Kiến tạo ra", score: Math.floor(student.score * 0.4), maxScore: 10 },
+        { step: "Bước 3: Hiểu và sử dụng được", score: Math.floor(student.score * 0.7), maxScore: 10 },
+        { step: "Bước 2: Nhớ, ghi nhớ được", score: Math.floor(student.score * 0.8), maxScore: 10 },
+        { step: "Bước 1: Thấy hiện tượng, phương trình", score: Math.floor(student.score * 0.9), maxScore: 10 }
+      ]
+    };
+    setSelectedStudent(enhancedStudent);
+    setShowStudentProfile(true);
   };
 
   return (
@@ -151,7 +223,12 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
                 <h3 className="font-semibold mb-3">Danh sách học sinh</h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {groupData.students.map((student) => (
-                    <div key={student.id} className="flex items-center justify-between p-2 rounded border border-border hover:bg-accent/50 transition-colors">
+                    <div 
+                      key={student.id} 
+                      className="flex items-center justify-between p-2 rounded border border-border hover:bg-accent/50 transition-colors cursor-pointer group"
+                      onClick={() => handleStudentClick(student)}
+                      title="Ấn vào để xem chi tiết"
+                    >
                       <div>
                         <p className="font-medium text-sm">{student.name}</p>
                         <p className="text-xs text-muted-foreground">ID: {student.id}</p>
@@ -165,6 +242,7 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
                           >
                             {student.riskScore}%
                           </Badge>
+                          <User className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </div>
                     </div>
@@ -293,6 +371,16 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
           </Card>
         </div>
       </DialogContent>
+      
+      <StudentProfileModal
+        student={selectedStudent}
+        isOpen={showStudentProfile}
+        onClose={() => setShowStudentProfile(false)}
+        onAction={(actionType, student) => {
+          console.log('Student action:', actionType, student);
+          // Handle individual student actions
+        }}
+      />
     </Dialog>
   );
 }
