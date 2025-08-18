@@ -258,52 +258,71 @@ export function KnowledgeGapAnalysis({ topics = mockTopics }: KnowledgeGapAnalys
     <>
       <Card className="p-6 shadow-md">
         <div className="space-y-6">
-          <div className="flex items-center space-x-2">
-            <Brain className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-semibold">Tỷ lệ nắm vững theo chủ đề</h3>
+          <div className="flex items-center space-x-3">
+            <Brain className="w-6 h-6 text-primary" />
+            <h3 className="text-xl font-bold">Thống kê kiến thức hổng</h3>
           </div>
           
-          <div className="space-y-6">
+          <div className="space-y-8">
             {topics.map((topic) => (
-              <div key={topic.id} className="space-y-4 p-4 rounded-lg border border-border hover:bg-accent/30 transition-colors">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-base text-foreground">{topic.name}</h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Các câu xuất hiện: {topic.questions.join(", ")}
-                    </p>
-                  </div>
-                  <div className="text-right ml-4">
-                    <div className={cn(
-                      "text-2xl font-bold",
-                      getMasteryColor(topic.masteryRate) === "success" && "text-success",
-                      getMasteryColor(topic.masteryRate) === "warning" && "text-warning",
-                      getMasteryColor(topic.masteryRate) === "danger" && "text-danger"
-                    )}>
-                      {topic.masteryRate}%
+              <div key={topic.id} className="space-y-5 p-6 rounded-lg border border-border/50 hover:border-border transition-colors bg-card/50">
+                {/* Knowledge mastery header */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg text-foreground mb-2">{topic.name}</h4>
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <span className="font-medium">Các câu xuất hiện:</span>
+                        <span className="text-foreground font-medium">{topic.questions.join(", ")}</span>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">Độ nắm vững</p>
+                    <div className="text-right ml-6">
+                      <div className={cn(
+                        "text-3xl font-bold mb-1",
+                        getMasteryColor(topic.masteryRate) === "success" && "text-success",
+                        getMasteryColor(topic.masteryRate) === "warning" && "text-warning",
+                        getMasteryColor(topic.masteryRate) === "danger" && "text-danger"
+                      )}>
+                        {topic.masteryRate}%
+                      </div>
+                      <p className="text-sm font-medium text-muted-foreground">Độ nắm vững</p>
+                    </div>
+                  </div>
+                  
+                  {/* Progress bar with better styling */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className="text-muted-foreground">Mức độ nắm vững kiến thức</span>
+                      <span className={cn(
+                        "font-bold",
+                        getMasteryColor(topic.masteryRate) === "success" && "text-success",
+                        getMasteryColor(topic.masteryRate) === "warning" && "text-warning",
+                        getMasteryColor(topic.masteryRate) === "danger" && "text-danger"
+                      )}>
+                        {topic.masteryRate}%
+                      </span>
+                    </div>
+                    <Progress 
+                      value={topic.masteryRate} 
+                      className={cn(
+                        "h-4 bg-muted",
+                        getMasteryColor(topic.masteryRate) === "success" && "[&>div]:bg-success",
+                        getMasteryColor(topic.masteryRate) === "warning" && "[&>div]:bg-warning", 
+                        getMasteryColor(topic.masteryRate) === "danger" && "[&>div]:bg-danger"
+                      )}
+                    />
                   </div>
                 </div>
                 
-                <Progress 
-                  value={topic.masteryRate} 
-                  className={cn(
-                    "h-3",
-                    getMasteryColor(topic.masteryRate) === "success" && "[&>div]:bg-success",
-                    getMasteryColor(topic.masteryRate) === "warning" && "[&>div]:bg-warning", 
-                    getMasteryColor(topic.masteryRate) === "danger" && "[&>div]:bg-danger"
-                  )}
-                />
-                
-                <div className="flex flex-wrap gap-2 pt-2">
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-3 pt-3 border-t border-border/30">
                   <Button
                     variant="outline" 
                     size="sm"
                     onClick={() => handleQuestionDetailsClick(topic)}
-                    className="text-xs"
+                    className="text-sm font-medium hover:bg-primary/10 hover:border-primary/20"
                   >
-                    <FileText className="w-3 h-3 mr-1" />
+                    <FileText className="w-4 h-4 mr-2" />
                     Xem chi tiết hổng kiến thức
                   </Button>
                   
@@ -311,10 +330,10 @@ export function KnowledgeGapAnalysis({ topics = mockTopics }: KnowledgeGapAnalys
                     variant="outline"
                     size="sm" 
                     onClick={() => handleStudentGapsClick(topic)}
-                    className="text-xs"
+                    className="text-sm font-medium hover:bg-primary/10 hover:border-primary/20"
                     disabled={topic.studentsWithGaps.length === 0}
                   >
-                    <Users className="w-3 h-3 mr-1" />
+                    <Users className="w-4 h-4 mr-2" />
                     Xem các học sinh hổng kiến thức ({topic.studentsWithGaps.length})
                   </Button>
                 </div>
@@ -326,98 +345,128 @@ export function KnowledgeGapAnalysis({ topics = mockTopics }: KnowledgeGapAnalys
 
       {/* Student Knowledge Gaps Modal */}
       <Dialog open={showStudentGaps} onOpenChange={setShowStudentGaps}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <TrendingDown className="w-5 h-5 mr-2 text-danger" />
+            <DialogTitle className="flex items-center text-xl">
+              <TrendingDown className="w-6 h-6 mr-3 text-danger" />
               Học sinh hổng kiến thức: {selectedTopic?.name}
             </DialogTitle>
+            <div className="text-sm text-muted-foreground mt-2">
+              Xếp hạng dựa trên tổng số % thiếu kiến thức (nghiêm trọng → nhẹ)
+            </div>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             {selectedTopic?.studentsWithGaps
               .sort((a, b) => b.deficitPercentage - a.deficitPercentage)
-              .map((student) => {
+              .map((student, index) => {
                 const severity = getSeverityLevel(student.deficitPercentage);
                 return (
-                  <Card key={student.id} className="p-5">
-                    <div className="space-y-4">
+                  <Card key={student.id} className="p-6 border-l-4 border-l-danger">
+                    <div className="space-y-5">
+                      {/* Student header with ranking */}
                       <div className="flex justify-between items-start">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center">
+                              <span className="font-bold text-danger">#{index + 1}</span>
+                            </div>
+                          </div>
                           <div>
-                            <p className="font-semibold text-lg">{student.name}</p>
-                            <div className="flex items-center space-x-2 mt-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h4 className="font-bold text-lg text-foreground">{student.name}</h4>
                               <Badge variant="outline" className={cn(
-                                student.group === "Giỏi" && "border-success text-success",
-                                student.group === "Khá" && "border-primary text-primary", 
-                                student.group === "TB" && "border-warning text-warning",
-                                student.group === "Yếu" && "border-danger text-danger"
+                                "font-medium",
+                                student.group === "Giỏi" && "border-success text-success bg-success/10",
+                                student.group === "Khá" && "border-primary text-primary bg-primary/10", 
+                                student.group === "TB" && "border-warning text-warning bg-warning/10",
+                                student.group === "Yếu" && "border-danger text-danger bg-danger/10"
                               )}>
-                                {student.group}
-                              </Badge>
-                              <Badge className={severity.color}>
-                                <AlertTriangle className="w-3 h-3 mr-1" />
-                                {severity.label}
+                                Nhóm {student.group}
                               </Badge>
                             </div>
+                            <Badge className={cn("font-medium", severity.color)}>
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              {severity.label}
+                            </Badge>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-danger">
+                          <div className="text-3xl font-bold text-danger mb-1">
                             {student.deficitPercentage}%
                           </div>
-                          <p className="text-sm text-muted-foreground">thiếu kiến thức</p>
+                          <p className="text-sm font-medium text-muted-foreground">thiếu kiến thức</p>
                         </div>
                       </div>
 
+                      {/* Deficit progress bar */}
                       <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Mức độ thiếu kiến thức</span>
-                          <span>{student.deficitPercentage}%</span>
+                        <div className="flex justify-between text-sm font-medium">
+                          <span className="text-muted-foreground">Mức độ thiếu kiến thức</span>
+                          <span className="text-danger font-bold">{student.deficitPercentage}%</span>
                         </div>
                         <Progress 
                           value={student.deficitPercentage}
-                          className="h-2 [&>div]:bg-danger"
+                          className="h-3 bg-muted [&>div]:bg-danger"
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <p className="font-medium text-sm mb-2 text-success">Câu làm đúng:</p>
-                          <div className="p-3 bg-success/10 rounded text-sm">
-                            {student.questionsCorrect.length > 0 
-                              ? student.questionsCorrect.join(", ")
-                              : "Không có câu nào"
-                            }
+                      {/* Questions breakdown */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="space-y-3">
+                          <p className="font-bold text-sm text-success flex items-center">
+                            <span className="w-3 h-3 bg-success rounded-full mr-2"></span>
+                            Câu làm đúng ({student.questionsCorrect.length} câu):
+                          </p>
+                          <div className="p-4 bg-success/5 border border-success/20 rounded-lg">
+                            <div className="text-sm font-medium text-success">
+                              {student.questionsCorrect.length > 0 
+                                ? student.questionsCorrect.join(", ")
+                                : "Không có câu nào"
+                              }
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm mb-2 text-danger">Câu làm sai:</p>
-                          <div className="p-3 bg-danger/10 rounded text-sm">
-                            {student.questionsIncorrect.length > 0 
-                              ? student.questionsIncorrect.join(", ")
-                              : "Không có câu nào"
-                            }
+                        <div className="space-y-3">
+                          <p className="font-bold text-sm text-danger flex items-center">
+                            <span className="w-3 h-3 bg-danger rounded-full mr-2"></span>
+                            Câu làm sai ({student.questionsIncorrect.length} câu):
+                          </p>
+                          <div className="p-4 bg-danger/5 border border-danger/20 rounded-lg">
+                            <div className="text-sm font-medium text-danger">
+                              {student.questionsIncorrect.length > 0 
+                                ? student.questionsIncorrect.join(", ")
+                                : "Không có câu nào"
+                              }
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      <div>
-                        <p className="font-medium text-sm mb-2">Ví dụ thiếu kiến thức:</p>
-                        <div className="bg-muted/50 p-4 rounded text-sm space-y-2">
-                          {student.examples.map((example, index) => (
-                            <div key={index} className="p-2 bg-background rounded border border-border">
-                              <code className="text-xs">{example}</code>
+                      {/* Knowledge gap examples */}
+                      <div className="space-y-3">
+                        <p className="font-bold text-sm text-foreground flex items-center">
+                          <FileText className="w-4 h-4 mr-2" />
+                          Ví dụ thiếu kiến thức (LaTeX):
+                        </p>
+                        <div className="bg-muted/30 p-4 rounded-lg space-y-3">
+                          {student.examples.map((example, exampleIndex) => (
+                            <div key={exampleIndex} className="p-3 bg-background border border-border rounded-md">
+                              <code className="text-sm font-mono text-foreground break-all">
+                                {example}
+                              </code>
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      <div className="flex space-x-3 pt-2">
+                      {/* Action buttons */}
+                      <div className="flex space-x-3 pt-3 border-t border-border/30">
                         <Button
                           variant="outline" 
                           size="sm"
                           onClick={() => handleQuestionDetailsClick(selectedTopic!)}
+                          className="font-medium hover:bg-primary/10"
                         >
                           <FileText className="w-4 h-4 mr-2" />
                           Xem chi tiết hổng kiến thức
@@ -429,9 +478,9 @@ export function KnowledgeGapAnalysis({ topics = mockTopics }: KnowledgeGapAnalys
               })}
             
             {selectedTopic?.studentsWithGaps.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                <Brain className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg">Không có học sinh nào thiếu kiến thức này</p>
+              <div className="text-center py-16 text-muted-foreground">
+                <Brain className="w-20 h-20 mx-auto mb-4 opacity-30" />
+                <p className="text-xl font-medium mb-2">Không có học sinh nào thiếu kiến thức này</p>
                 <p className="text-sm">Tất cả học sinh đều nắm vững kiến thức cơ bản</p>
               </div>
             )}
@@ -441,66 +490,103 @@ export function KnowledgeGapAnalysis({ topics = mockTopics }: KnowledgeGapAnalys
 
       {/* Question Details Modal */}
       <Dialog open={showQuestionDetails} onOpenChange={setShowQuestionDetails}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-primary" />
+            <DialogTitle className="flex items-center text-xl">
+              <FileText className="w-6 h-6 mr-3 text-primary" />
               Chi tiết hổng kiến thức: {selectedTopic?.name}
             </DialogTitle>
+            <div className="text-sm text-muted-foreground mt-2">
+              Danh sách các câu hỏi có kiến thức này và tình trạng làm bài của học sinh
+            </div>
           </DialogHeader>
 
-          <div className="space-y-5">
+          <div className="space-y-6">
             {mockQuestionDetails[selectedTopic?.id || ""]?.map((question) => (
-              <Card key={question.questionNumber} className="p-5">
-                <div className="space-y-4">
+              <Card key={question.questionNumber} className="p-6 border-l-4 border-l-primary">
+                <div className="space-y-5">
+                  {/* Question header */}
                   <div className="flex justify-between items-center">
-                    <h4 className="font-semibold text-lg">{question.questionNumber}</h4>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-xl text-foreground">{question.questionNumber}</h4>
+                        <p className="text-sm text-muted-foreground">Câu hỏi kiểm tra kiến thức</p>
+                      </div>
+                    </div>
                     <div className="text-right">
                       <div className={cn(
-                        "text-xl font-bold",
+                        "text-3xl font-bold mb-1",
                         question.correctRate >= 70 ? "text-success" : 
                         question.correctRate >= 50 ? "text-warning" : "text-danger"
                       )}>
                         {question.correctRate}%
                       </div>
-                      <p className="text-sm text-muted-foreground">làm đúng</p>
+                      <p className="text-sm font-medium text-muted-foreground">làm đúng</p>
                     </div>
                   </div>
 
+                  {/* Correct rate progress bar */}
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Tỷ lệ làm đúng</span>
-                      <span>{question.correctRate}%</span>
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className="text-muted-foreground">Tỷ lệ làm đúng</span>
+                      <span className={cn(
+                        "font-bold",
+                        question.correctRate >= 70 ? "text-success" : 
+                        question.correctRate >= 50 ? "text-warning" : "text-danger"
+                      )}>
+                        {question.correctRate}%
+                      </span>
                     </div>
                     <Progress 
                       value={question.correctRate}
                       className={cn(
-                        "h-3",
+                        "h-4 bg-muted",
                         question.correctRate >= 70 ? "[&>div]:bg-success" : 
                         question.correctRate >= 50 ? "[&>div]:bg-warning" : "[&>div]:bg-danger"
                       )}
                     />
                   </div>
 
-                  <div>
-                    <p className="font-medium text-sm mb-2 text-danger">Học sinh làm sai ({question.studentsIncorrect.length} học sinh):</p>
-                    <div className="p-3 bg-danger/10 rounded text-sm">
-                      {question.studentsIncorrect.join(", ")}
+                  {/* Students who got it wrong */}
+                  <div className="space-y-3">
+                    <p className="font-bold text-sm text-danger flex items-center">
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      Học sinh làm sai ({question.studentsIncorrect.length} học sinh):
+                    </p>
+                    <div className="p-4 bg-danger/5 border border-danger/20 rounded-lg">
+                      <div className="flex flex-wrap gap-2">
+                        {question.studentsIncorrect.map((studentName, index) => (
+                          <Badge key={index} variant="outline" className="border-danger/30 text-danger bg-danger/5">
+                            {studentName}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div>
-                    <p className="font-medium text-sm mb-2">Ví dụ thiếu kiến thức:</p>
-                    <div className="bg-muted/50 p-4 rounded">
-                      <code className="text-sm">{question.knowledgeExample}</code>
+                  {/* Knowledge gap examples */}
+                  <div className="space-y-3">
+                    <p className="font-bold text-sm text-foreground flex items-center">
+                      <Brain className="w-4 h-4 mr-2" />
+                      Ví dụ thiếu kiến thức (LaTeX):
+                    </p>
+                    <div className="bg-muted/30 p-4 rounded-lg">
+                      <div className="p-3 bg-background border border-border rounded-md">
+                        <code className="text-sm font-mono text-foreground break-all">
+                          {question.knowledgeExample}
+                        </code>
+                      </div>
                     </div>
                   </div>
                 </div>
               </Card>
             )) || (
-              <div className="text-center py-12 text-muted-foreground">
-                <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg">Không có dữ liệu chi tiết cho chủ đề này</p>
+              <div className="text-center py-16 text-muted-foreground">
+                <FileText className="w-20 h-20 mx-auto mb-4 opacity-30" />
+                <p className="text-xl font-medium mb-2">Không có dữ liệu chi tiết cho chủ đề này</p>
                 <p className="text-sm">Dữ liệu phân tích sẽ được cập nhật sau khi có đủ bài làm</p>
               </div>
             )}
