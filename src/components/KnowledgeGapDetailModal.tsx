@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { Brain, FileText, Users, AlertTriangle } from "lucide-react";
+import { questionDetailMap } from "@/data/exam177DeepData";
 
 interface KnowledgeTopic {
   id: string;
@@ -36,96 +37,17 @@ interface KnowledgeGapDetailModalProps {
   onClose: () => void;
 }
 
-// Mock question details for different topics
-const mockQuestionDetails: { [key: string]: QuestionDetail[] } = {
-  "topic_1": [
-    {
-      questionNumber: "Câu 1",
-      correctRate: 85,
-      studentsIncorrect: ["Nguyễn Văn An", "Hoàng Văn E"],
-      knowledgeExample: "Tính \\sin 30°, \\cos 60°, \\tan 45° - Các giá trị lượng giác đặc biệt cơ bản"
-    },
-    {
-      questionNumber: "Câu 3", 
-      correctRate: 65,
-      studentsIncorrect: ["Nguyễn Văn An", "Lê Văn Cường", "Phạm Thị Dung"],
-      knowledgeExample: "So sánh các giá trị lượng giác: \\sin 30° < \\cos 30° hay ngược lại?"
-    },
-    {
-      questionNumber: "Câu 7",
-      correctRate: 45,
-      studentsIncorrect: ["Nguyễn Văn An", "Trần Thị Bình", "Hoàng Văn E", "Vũ Thị Giang"],
-      knowledgeExample: "Ứng dụng định nghĩa trong bài toán thực tế - tính chiều cao cột cờ biết khoảng cách và góc nhìn"
-    }
-  ],
-  "topic_2": [
-    {
-      questionNumber: "Câu 2",
-      correctRate: 75,
-      studentsIncorrect: ["Lê Văn Cường", "Vũ Thị Giang", "Hoàng Văn E"],
-      knowledgeExample: "Xác định cạnh đối, cạnh kề trong tam giác vuông ABC vuông tại C với góc \\alpha"
-    },
-    {
-      questionNumber: "Câu 4",
-      correctRate: 40,
-      studentsIncorrect: ["Lê Văn Cường", "Phạm Thị Dung", "Hoàng Văn E", "Đỗ Văn H"],
-      knowledgeExample: "Tỉ số lượng giác của góc nhọn: \\sin \\alpha = \\frac{\\text{đối}}{\\text{huyền}}, \\cos \\alpha = \\frac{\\text{kề}}{\\text{huyền}}"
-    },
-    {
-      questionNumber: "Câu 5",
-      correctRate: 30,
-      studentsIncorrect: ["Lê Văn Cường", "Phạm Thị Dung", "Hoàng Văn E", "Vũ Thị Giang", "Đỗ Văn H"],
-      knowledgeExample: "Áp dụng tỉ số lượng giác để tính độ dài cạnh trong tam giác vuông"
-    }
-  ],
-  "topic_3": [
-    {
-      questionNumber: "Câu 6",
-      correctRate: 45,
-      studentsIncorrect: ["Vũ Thị Giang", "Đỗ Văn H", "Mai Văn K"],
-      knowledgeExample: "Tìm cạnh trong tam giác vuông: AB = \\frac{BC}{\\sin \\alpha} khi biết BC và góc \\alpha"
-    },
-    {
-      questionNumber: "Câu 8",
-      correctRate: 25,
-      studentsIncorrect: ["Vũ Thị Giang", "Đỗ Văn H", "Mai Văn K", "Trương Văn M"],
-      knowledgeExample: "Sử dụng sin, cos, tan để giải bài toán hình học: tính AC khi biết AB = 10cm và góc ABC = 60°"
-    }
-  ],
-  "topic_4": [
-    {
-      questionNumber: "Câu 9",
-      correctRate: 35,
-      studentsIncorrect: ["Mai Văn K", "Lý Thị L", "Trương Văn M"],
-      knowledgeExample: "Tìm góc bằng hàm ngược: \\alpha = \\arcsin(0.5) = 30°, \\beta = \\arccos(0.5) = 60°"
-    },
-    {
-      questionNumber: "Câu 10",
-      correctRate: 20,
-      studentsIncorrect: ["Mai Văn K", "Lý Thị L", "Trương Văn M", "Hoàng Văn E"],
-      knowledgeExample: "Ứng dụng hàm lượng giác ngược: tìm góc nâng khi biết chiều cao và khoảng cách"
-    }
-  ],
-  "topic_5": [
-    {
-      questionNumber: "Câu 11",
-      correctRate: 20,
-      studentsIncorrect: ["Trương Văn M", "Mai Văn K", "Hoàng Văn E"],
-      knowledgeExample: "Bài toán thực tế: Chiều cao tòa nhà = khoảng cách × \\tan(\\text{góc nâng})"
-    },
-    {
-      questionNumber: "Câu 12",
-      correctRate: 10,
-      studentsIncorrect: ["Trương Văn M", "Vũ Thị Giang", "Lý Thị L"],
-      knowledgeExample: "Ứng dụng tổng hợp: Tính khoảng cách từ điểm A đến điểm B không thể đo trực tiếp"
-    }
-  ]
-};
-
 export function KnowledgeGapDetailModal({ topic, isOpen, onClose }: KnowledgeGapDetailModalProps) {
   if (!topic) return null;
 
-  const questionDetails = mockQuestionDetails[topic.id] || [];
+  // Map from questionDetailMap (analytics JSON) to this component's QuestionDetail interface
+  const rawQuestions: any[] = (questionDetailMap as any)[topic.name] || [];
+  const questionDetails: QuestionDetail[] = rawQuestions.map((q: any) => ({
+    questionNumber: q.id,
+    correctRate: q.maxScore > 0 ? Math.round((q.score / q.maxScore) * 100) : 0,
+    studentsIncorrect: q.studentsIncorrect,
+    knowledgeExample: q.content
+  }));
 
   const getCorrectRateColor = (rate: number) => {
     if (rate >= 70) return "success";

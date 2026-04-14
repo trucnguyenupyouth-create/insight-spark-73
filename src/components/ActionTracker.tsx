@@ -46,13 +46,15 @@ interface ActionTrackerProps {
   studentProgress: StudentProgress[];
   onRevoke?: (actionId: string) => void;
   onViewDetails?: (actionId: string) => void;
+  className?: string;
 }
 
 export function ActionTracker({ 
   sentActions, 
   studentProgress, 
   onRevoke, 
-  onViewDetails 
+  onViewDetails,
+  className
 }: ActionTrackerProps) {
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
 
@@ -123,10 +125,10 @@ export function ActionTracker({
   };
 
   return (
-    <Card className="p-6 shadow-md">
+    <Card className={cn("p-6 shadow-md", className)}>
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold flex items-center">
-          <BarChart3 className="w-5 h-5 mr-2 text-primary" />
+        <h3 className="text-lg font-bold flex items-center tracking-tight">
+          <BarChart3 className="w-5 h-5 mr-3 text-primary" />
           Theo dõi hành động
         </h3>
 

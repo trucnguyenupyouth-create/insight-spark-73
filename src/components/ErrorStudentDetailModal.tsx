@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, FileText, MessageSquare } from "lucide-react";
+import { errorDetailMap } from "@/data/exam177DeepData";
 
 interface ErrorStudent {
   id: string;
@@ -13,6 +14,7 @@ interface ErrorStudent {
   errorExamples: string[];
   feedback: string[];
   group: "Giỏi" | "Khá" | "TB" | "Yếu";
+  score?: number;
 }
 
 interface CommonError {
@@ -23,7 +25,7 @@ interface CommonError {
   severity: "high" | "medium" | "low";
   example: string;
   affectedStudents: string[];
-  questionIds: number[];
+  questionIds: string[];
 }
 
 interface ErrorStudentDetailModalProps {
@@ -32,114 +34,23 @@ interface ErrorStudentDetailModalProps {
   onClose: () => void;
 }
 
-// Mock detailed student error data
-const mockStudentErrors: { [key: string]: ErrorStudent[] } = {
-  "error_1": [
-    {
-      id: "hs001",
-      name: "Nguyễn Văn An",
-      errorCount: 4,
-      questions: ["Câu 2", "Câu 5", "Câu 8", "Câu 10"],
-      errorExamples: [
-        "sin30° = √3/2 (sai, đúng là 1/2)",
-        "cos45° = 1 (sai, đúng là √2/2)",
-        "Nhầm cạnh kề với cạnh đối",
-        "Quên quy tắc dấu trong góc phần tư thứ hai"
-      ],
-      feedback: [
-        "Em cần ôn lại bảng giá trị lượng giác cơ bản",
-        "Luyện tập thêm bài tập nhận biết cạnh trong tam giác vuông",
-        "Học thuộc quy tắc dấu của các hàm số lượng giác"
-      ],
-      group: "Yếu"
-    },
-    {
-      id: "hs002", 
-      name: "Trần Thị Bình",
-      errorCount: 2,
-      questions: ["Câu 3", "Câu 7"],
-      errorExamples: [
-        "tan60° = √3/2 (sai, đúng là √3)",
-        "Áp dụng sai công thức tính cạnh"
-      ],
-      feedback: [
-        "Cần ghi nhớ chính xác các giá trị đặc biệt",
-        "Luyện tập thêm các dạng bài ứng dụng"
-      ],
-      group: "TB"
-    },
-    {
-      id: "hs003",
-      name: "Lê Văn Cường", 
-      errorCount: 3,
-      questions: ["Câu 2", "Câu 4", "Câu 9"],
-      errorExamples: [
-        "Nhầm định nghĩa sin với cos",
-        "Tính sai góc với arcsin",
-        "Đơn vị góc không đúng (độ/radian)"
-      ],
-      feedback: [
-        "Ôn lại định nghĩa các tỉ số lượng giác",
-        "Chú ý đơn vị góc khi tính toán",
-        "Luyện tập thêm bài tập tìm góc"
-      ],
-      group: "TB"
-    },
-    {
-      id: "hs004",
-      name: "Phạm Thị Dung",
-      errorCount: 1,
-      questions: ["Câu 6"],
-      errorExamples: [
-        "Làm tròn kết quả không chính xác"
-      ],
-      feedback: [
-        "Chú ý quy tắc làm tròn số thập phân"
-      ],
-      group: "Khá"
-    },
-    {
-      id: "hs005",
-      name: "Hoàng Văn E",
-      errorCount: 5,
-      questions: ["Câu 1", "Câu 3", "Câu 5", "Câu 8", "Câu 11"],
-      errorExamples: [
-        "Không nhớ công thức cơ bản",
-        "Tính toán sai các phép tính cơ bản", 
-        "Nhầm lẫn giữa các hàm số lượng giác",
-        "Không hiểu đề bài",
-        "Không biết cách vẽ hình minh họa"
-      ],
-      feedback: [
-        "Cần ôn lại toàn bộ kiến thức lượng giác cơ bản",
-        "Luyện tập thêm các phép tính số học",
-        "Học cách phân tích đề bài",
-        "Rèn luyện kỹ năng vẽ hình minh họa"
-      ],
-      group: "Yếu"
-    },
-    {
-      id: "hs006",
-      name: "Vũ Thị Giang",
-      errorCount: 2,
-      questions: ["Câu 4", "Câu 12"],
-      errorExamples: [
-        "Áp dụng sai định lý cosin",
-        "Bài toán thực tế thiết lập sai mối quan hệ"
-      ],
-      feedback: [
-        "Ôn lại định lý cosin và cách áp dụng",
-        "Luyện tập thêm dạng bài toán thực tế"
-      ],
-      group: "TB"
-    }
-  ]
-};
-
 export function ErrorStudentDetailModal({ error, isOpen, onClose }: ErrorStudentDetailModalProps) {
   if (!error) return null;
 
-  const studentErrors = mockStudentErrors[error.id] || [];
+  // Look up deep data from analytics JSON using the error's id (e.g., ERR_002)
+  const errorDetails = (errorDetailMap as any)[error.id];
+  
+  // Transform affectedStudents from analytics into ErrorStudent interface
+  const studentErrors: ErrorStudent[] = errorDetails?.affectedStudents?.map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    errorCount: s.errors?.length || 1,
+    questions: error.questionIds,
+    errorExamples: errorDetails.commonMistakes || [error.example],
+    feedback: errorDetails.suggestedActions?.map((a: any) => a.title) || ["Cần ôn tập lại kiến thức liên quan"],
+    group: s.group,
+    score: s.score
+  })) || [];
 
   const getTagVariant = (errorCount: number) => {
     if (errorCount > 3) return "Nghiêm trọng";
@@ -181,7 +92,7 @@ export function ErrorStudentDetailModal({ error, isOpen, onClose }: ErrorStudent
           <div className="bg-primary/10 rounded-lg p-4">
             <div className="text-3xl font-bold text-primary mb-2">{error.count}</div>
             <p className="text-muted-foreground">
-              học sinh ({error.percentage}%) đã mắc lỗi này
+              học sinh ({error.percentage}%) đã mắc lỗi này trong Exam 177
             </p>
           </div>
 
@@ -211,6 +122,11 @@ export function ErrorStudentDetailModal({ error, isOpen, onClose }: ErrorStudent
                               <Badge variant="outline" className={getGroupColor(student.group)}>
                                 {student.group}
                               </Badge>
+                              {student.score !== undefined && (
+                                <span className="text-xs text-muted-foreground font-medium">
+                                  Điểm: {student.score}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div className="text-right">
@@ -249,7 +165,7 @@ export function ErrorStudentDetailModal({ error, isOpen, onClose }: ErrorStudent
                         <div>
                           <h5 className="font-medium text-sm mb-2 flex items-center">
                             <MessageSquare className="w-3 h-3 mr-1" />
-                            Feedback hiện tại:
+                            Gợi ý can thiệp:
                           </h5>
                           <div className="bg-accent/30 p-3 rounded-lg">
                             <ul className="text-sm space-y-1">

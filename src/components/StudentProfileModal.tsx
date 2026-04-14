@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { User, TrendingUp, AlertTriangle, FileText, MessageSquare, Send, Phone } from "lucide-react";
+import { enhancedStudents } from "@/data/exam177DeepData";
 
 interface Student {
   id: string;
@@ -46,50 +47,21 @@ interface StudentProfileModalProps {
   onAction?: (actionType: string, student: Student) => void;
 }
 
-const mockStudentData: Student = {
-  id: "hs002",
-  name: "Trần Thị Bình",
-  score: 4.5,
-  riskScore: 65,
-  progress: -2.5,
-  group: "Yếu",
-  studentId: "HS002",
-  averageScore: 45,
-  scoreHistory: [
-    { test: "Bài 1", score: 50 },
-    { test: "Bài 2", score: 55 },
-    { test: "Bài 3", score: 48 },
-    { test: "Bài 4", score: 60 },
-    { test: "Bài 5", score: 55 }
-  ],
-  riskBreakdown: {
-    averageScore: 27.5,
-    severity: 18.0,
-    trend: 8.0,
-    total: 65
-  },
-  questionResults: [
-    { question: 1, score: 2, maxScore: 2, status: "correct", topic: "Đồng" },
-    { question: 2, score: 0, maxScore: 2, status: "incorrect", topic: "Lỗi tính toán" },
-    { question: 3, score: 1.5, maxScore: 2, status: "partial", topic: "Đúng" },
-    { question: 4, score: 0, maxScore: 2, status: "incorrect", topic: "Không hiểu khái niệm" },
-    { question: 5, score: 2, maxScore: 2, status: "correct", topic: "Đúng" }
-  ],
-  progressSteps: [
-    { step: "Bước 4: Kiến tạo ra", score: 4, maxScore: 10 },
-    { step: "Bước 3: Hiểu và sử dụng được", score: 7, maxScore: 10 },
-    { step: "Bước 2: Nhớ, ghi nhớ được", score: 8, maxScore: 10 },
-    { step: "Bước 1: Thấy hiện tượng, phương trình", score: 9, maxScore: 10 }
-  ]
-};
+// Real student data is loaded from enhancedStudents (analytics JSON)
 
 export function StudentProfileModal({ student, isOpen, onClose, onAction }: StudentProfileModalProps) {
   const [activeTab, setActiveTab] = useState("overview");
   
   if (!student) return null;
 
-  // Use mock data for demonstration
-  const studentData = { ...mockStudentData, ...student };
+  // Look up real question-level data from analytics enhancedStudents array
+  const realData = (enhancedStudents as any[]).find(
+    (s: any) => s.id === student.id || s.studentId === student.studentId || s.name === student.name
+  );
+  // Merge: real data provides questionResults; passed prop provides name/score/group
+  const studentData = realData
+    ? { ...realData, ...student, questionResults: realData.questionResults }
+    : { ...student };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -323,8 +295,8 @@ export function StudentProfileModal({ student, isOpen, onClose, onAction }: Stud
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
-            Dựa trên phân tích, Trần Thị Bình cần đặc biệt tập vào việc hiểu và khái niệm cơ bản của môn hóa chuyển trình. 
-            Đề xuất gửi bài tập bổ sung và biến đổi dụng với người đó và kiểm tra nghiệm.
+            Dựa trên phân tích, <strong>{studentData.name}</strong> cần tập trung vào các câu có điểm thấp nhất.
+            Đề xuất kết hợp luyện tập cá nhân và kiểm tra định kỳ theo tuần.
           </p>
         </Card>
       </DialogContent>

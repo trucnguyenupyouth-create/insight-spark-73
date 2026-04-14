@@ -14,7 +14,7 @@ interface CommonError {
   severity: "high" | "medium" | "low";
   example: string;
   affectedStudents: string[];
-  questionIds: number[];
+  questionIds: string[];
 }
 
 interface ErrorAnalysisProps {
@@ -55,12 +55,12 @@ export function ErrorAnalysis({ errors, totalStudents, onErrorClick }: ErrorAnal
     <Card className="p-6 shadow-md">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold flex items-center">
-            <AlertTriangle className="w-5 h-5 mr-2 text-primary" />
+          <h3 className="text-lg font-bold flex items-center tracking-tight">
+            <AlertTriangle className="w-5 h-5 mr-3 text-primary" />
             Lỗi sai phổ biến
           </h3>
-          <Badge variant="outline" className="text-muted-foreground">
-            {errors.length} loại lỗi phát hiện
+          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-tighter bg-primary/5 border-primary/20 text-primary">
+            {errors.length} Logic Blockers Found
           </Badge>
         </div>
         
@@ -90,13 +90,16 @@ export function ErrorAnalysis({ errors, totalStudents, onErrorClick }: ErrorAnal
                       </h4>
                       <div className="flex items-center space-x-2">
                         <Badge variant="outline" className={cn(
-                          "text-xs",
-                          getSeverityColor(error.severity) === "danger" && "border-danger text-danger",
-                          getSeverityColor(error.severity) === "warning" && "border-warning text-warning",
-                          getSeverityColor(error.severity) === "success" && "border-success text-success"
+                          "text-[10px] uppercase font-bold px-2 py-0 h-5 flex items-center gap-1",
+                          getSeverityColor(error.severity) === "danger" && "border-danger/30 text-danger bg-danger/5",
+                          getSeverityColor(error.severity) === "warning" && "border-warning/30 text-warning bg-warning/5",
+                          getSeverityColor(error.severity) === "success" && "border-success/30 text-success bg-success/5"
                         )}>
-                          {error.severity === "high" ? "Nghiêm trọng" : 
-                           error.severity === "medium" ? "Trung bình" : "Nhẹ"}
+                          <SeverityIcon className="w-3 h-3" />
+                          <span className="hidden sm:inline">
+                            {error.severity === "high" ? "Nghiêm trọng" : 
+                             error.severity === "medium" ? "Trung bình" : "Nhẹ"}
+                          </span>
                         </Badge>
                       </div>
                     </div>

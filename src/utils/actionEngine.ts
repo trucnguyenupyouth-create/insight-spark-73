@@ -1,5 +1,7 @@
 // Action Engine - Contains the logic for generating smart action suggestions
 // Based on the trigger rules defined in PRD v2.0
+import { exam177ClassData } from "@/data/examData";
+
 
 export interface TriggerRule {
   id: string;
@@ -211,9 +213,14 @@ export function generateActionSuggestions(data: ClassData) {
       let affectedCount = 0;
       
       // Replace placeholders with actual data
+      suggestion = suggestion.replace(/{student}/g, "Trúc Anh");
+      
       if (result.context) {
         Object.entries(result.context).forEach(([key, value]) => {
-          suggestion = suggestion.replace(`{${key}}`, String(value));
+          // Skip if key is student as it's already handled globally above
+          if (key !== "student") {
+            suggestion = suggestion.replace(`{${key}}`, String(value));
+          }
         });
         
         // Calculate affected count
@@ -265,54 +272,4 @@ function getActionIcon(actionType: string): string {
 }
 
 // Mock data for testing
-export const mockClassData: ClassData = {
-  totalStudents: 40,
-  averageScore: 7.2,
-  students: [
-    {
-      id: "1",
-      name: "Nguyễn Văn An",
-      score: 9.5,
-      group: "Giỏi",
-      errors: [],
-      previousScores: [7.0, 8.2]
-    },
-    {
-      id: "2",
-      name: "Trần Thị Bình",
-      score: 8.8,
-      group: "Giỏi",
-      errors: ["Không tách nhân tử"],
-      previousScores: [8.5, 8.6]
-    },
-    {
-      id: "3",
-      name: "Lê Văn Cường",
-      score: 7.5,
-      group: "Khá",
-      errors: ["Sai dấu khi chuyển vế"],
-      previousScores: [7.2, 7.3]
-    },
-    {
-      id: "4",
-      name: "Phạm Thị Dung",
-      score: 3.2,
-      group: "Yếu",
-      errors: ["Nhầm chân đối/chân kề", "Nhầm chân đối/chân kề", "Quên đổi đơn vị"],
-      previousScores: [4.1, 3.8]
-    },
-    {
-      id: "5",
-      name: "Hoàng Văn Em",
-      score: 2.8,
-      group: "Yếu",
-      errors: ["Nhầm chân đối/chân kề", "Sai công thức", "Sai công thức"],
-      previousScores: [3.2, 2.9]
-    }
-  ],
-  commonErrors: [
-    { tag: "Nhầm chân đối/chân kề", count: 15, percentage: 37.5 },
-    { tag: "Sai dấu khi chuyển vế", count: 8, percentage: 20 },
-    { tag: "Quên đổi đơn vị", count: 6, percentage: 15 }
-  ]
-};
+export const mockClassData: ClassData = exam177ClassData;

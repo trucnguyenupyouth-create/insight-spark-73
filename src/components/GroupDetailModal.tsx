@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { Users, TrendingUp, AlertTriangle, FileText, MessageSquare, User } from "lucide-react";
 import { StudentProfileModal } from "./StudentProfileModal";
+import { groupDetailMap, enhancedStudents } from "@/data/exam177DeepData";
 
 interface GroupStudent {
   id: string;
@@ -58,70 +59,7 @@ interface GroupDetailModalProps {
   onAction?: (actionType: string, group: any) => void;
 }
 
-const mockGroupData = {
-  "Yếu": {
-    name: "Nhóm Yếu",
-    count: 8,
-    averageScore: 3.2,
-    riskLevel: "Cao",
-    students: [
-      { id: "hs002", name: "Trần Thị Bình", score: 4.5, riskScore: 65, group: "Yếu" },
-      { id: "hs005", name: "Hoàng Văn E", score: 2.7, riskScore: 78, group: "Yếu" },
-      { id: "hs008", name: "Nguyễn Thị F", score: 3.1, riskScore: 72, group: "Yếu" },
-      { id: "hs012", name: "Lê Văn G", score: 2.9, riskScore: 75, group: "Yếu" },
-      { id: "hs015", name: "Phạm Thị H", score: 3.8, riskScore: 68, group: "Yếu" },
-      { id: "hs018", name: "Vũ Văn I", score: 2.5, riskScore: 82, group: "Yếu" },
-      { id: "hs021", name: "Đỗ Thị K", score: 3.6, riskScore: 70, group: "Yếu" },
-      { id: "hs025", name: "Mai Văn L", score: 2.3, riskScore: 85, group: "Yếu" }
-    ],
-    commonWeaknesses: [
-      {
-        topic: "Hình học không gian",
-        percentage: 87.5,
-        description: "7/8 học sinh gặp khó khăn với các bài toán về thể tích, diện tích"
-      },
-      {
-        topic: "Hệ phương trình",
-        percentage: 75,
-        description: "6/8 học sinh chưa nắm vững cách giải hệ phương trình bậc nhất"
-      },
-      {
-        topic: "Bất đẳng thức",
-        percentage: 100,
-        description: "Toàn bộ nhóm đều làm sai các câu hỏi về bất đẳng thức cơ bản"
-      }
-    ],
-    commonErrors: [
-      {
-        error: "Không tách nhân tử / sai biến",
-        count: 6,
-        severity: "high"
-      },
-      {
-        error: "Quên đổi đơn vị (mm ↔ m)",
-        count: 5,
-        severity: "medium"
-      },
-      {
-        error: "Sai dấu khi áp dụng định lý",
-        count: 4,
-        severity: "high"
-      }
-    ],
-    interventionPlan: {
-      immediate: [
-        "Tổ chức buổi học phụ đạo về hình học không gian",
-        "Gửi tài liệu ôn tập cơ bản về hệ phương trình",
-        "Thông báo phụ huynh về tình hình học tập"
-      ],
-      longTerm: [
-        "Thiết lập hệ thống mentor từ nhóm Giỏi",
-        "Tạo lộ trình học cá nhân hóa",
-        "Theo dõi tiến độ hàng tuần"
-      ]
-    }
-  }
-};
+// groupDetailMap and enhancedStudents are imported from exam177DeepData
 
 export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDetailModalProps) {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -129,7 +67,8 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
   
   if (!group) return null;
 
-  const groupData = mockGroupData["Yếu"];
+  const groupKey = group.name.replace("Nhóm ", "");
+  const groupData = (groupDetailMap as any)[groupKey] || (groupDetailMap as any)["Yếu"];
 
   const getRiskColor = (riskScore: number) => {
     if (riskScore >= 70) return "text-danger";
@@ -152,37 +91,23 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
   };
 
   const handleStudentClick = (student: GroupStudent) => {
-    // Enhance student data with required fields for StudentProfileModal
-    const enhancedStudent: Student = {
+    // Look up real data from the analytics enhancedStudents array
+    const realData = (enhancedStudents as any[]).find(
+      (s: any) => s.id === student.id || s.name === student.name
+    );
+    const enhancedStudent: Student = realData ? {
+      ...realData,
+      group: realData.group as "Giỏi" | "Khá" | "TB" | "Yếu",
+    } : {
       ...student,
-      progress: -2.5,
-      studentId: student.id.toUpperCase(),
-      averageScore: student.score * 10, // Convert to percentage
+      progress: 0,
+      studentId: `HS${student.id}`,
+      averageScore: student.score,
       group: student.group as "Giỏi" | "Khá" | "TB" | "Yếu",
-      scoreHistory: [
-        { test: "Bài 1", score: student.score * 8 },
-        { test: "Bài 2", score: student.score * 12 },
-        { test: "Bài 3", score: student.score * 9 },
-        { test: "Bài 4", score: student.score * 11 },
-        { test: "Bài 5", score: student.score * 10 }
-      ],
-      riskBreakdown: {
-        averageScore: (100 - student.score * 10) * 0.5,
-        severity: student.riskScore * 0.3,
-        trend: 8.0,
-        total: student.riskScore
-      },
-      questionResults: [
-        { question: 1, score: student.score > 4 ? 2 : 0, maxScore: 2, status: (student.score > 4 ? "correct" : "incorrect") as "correct" | "incorrect", topic: "Lượng giác" },
-        { question: 2, score: student.score > 3 ? 2 : 0, maxScore: 2, status: (student.score > 3 ? "correct" : "incorrect") as "correct" | "incorrect", topic: "Hình học" },
-        { question: 3, score: student.score > 2.5 ? 1.5 : 0, maxScore: 2, status: (student.score > 2.5 ? "partial" : "incorrect") as "partial" | "incorrect", topic: "Đại số" }
-      ],
-      progressSteps: [
-        { step: "Bước 4: Kiến tạo ra", score: Math.floor(student.score * 0.4), maxScore: 10 },
-        { step: "Bước 3: Hiểu và sử dụng được", score: Math.floor(student.score * 0.7), maxScore: 10 },
-        { step: "Bước 2: Nhớ, ghi nhớ được", score: Math.floor(student.score * 0.8), maxScore: 10 },
-        { step: "Bước 1: Thấy hiện tượng, phương trình", score: Math.floor(student.score * 0.9), maxScore: 10 }
-      ]
+      scoreHistory: [{ test: "GK2", score: student.score }],
+      riskBreakdown: { averageScore: student.score, severity: student.riskScore * 0.3, trend: 0, total: student.riskScore },
+      questionResults: [],
+      progressSteps: []
     };
     setSelectedStudent(enhancedStudent);
     setShowStudentProfile(true);

@@ -21,9 +21,10 @@ interface GroupAnalysisProps {
   groups: StudentGroup[];
   totalStudents: number;
   onGroupClick?: (group: StudentGroup) => void;
+  className?: string;
 }
 
-export function GroupAnalysis({ groups, totalStudents, onGroupClick }: GroupAnalysisProps) {
+export function GroupAnalysis({ groups, totalStudents, onGroupClick, className }: GroupAnalysisProps) {
   const getLevelColor = (level: string) => {
     switch (level) {
       case "Giỏi": return "success";
@@ -53,12 +54,12 @@ export function GroupAnalysis({ groups, totalStudents, onGroupClick }: GroupAnal
   };
 
   return (
-    <Card className="p-6 shadow-md">
+    <Card className={cn("p-6 shadow-md", className)}>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold flex items-center">
-            <Users className="w-5 h-5 mr-2 text-primary" />
-            Phân hóa học sinh
+          <h3 className="text-lg font-bold flex items-center tracking-tight">
+            <Users className="w-5 h-5 mr-3 text-primary" />
+            Nhóm học sinh & Can thiệp
           </h3>
           <Badge variant="outline" className="text-muted-foreground">
             {totalStudents} học sinh
