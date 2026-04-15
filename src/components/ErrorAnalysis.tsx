@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, Users, TrendingUp, Eye } from "lucide-react";
+import { AlertTriangle, Users, TrendingUp, Eye, Sparkles } from "lucide-react";
 import { ErrorStudentDetailModal } from "./ErrorStudentDetailModal";
 
 interface CommonError {
@@ -15,6 +15,7 @@ interface CommonError {
   example: string;
   affectedStudents: string[];
   questionIds: string[];
+  recommendation?: string;
 }
 
 interface ErrorAnalysisProps {
@@ -114,9 +115,42 @@ export function ErrorAnalysis({ errors, totalStudents, onErrorClick }: ErrorAnal
                       </div>
                     </div>
                     
-                    <p className="text-sm text-muted-foreground italic">
+                    <p className="text-sm text-muted-foreground italic mb-4">
                       Ví dụ: "{error.example}"
                     </p>
+
+                    {error.recommendation && (
+                      <div className={cn(
+                        "p-4 rounded-xl border-l-4 shadow-sm space-y-2 animate-in fade-in slide-in-from-top-1 duration-500",
+                        error.severity === "high" && "bg-danger/5 border-danger border-y border-r",
+                        error.severity === "medium" && "bg-warning/5 border-warning border-y border-r",
+                        error.severity === "low" && "bg-success/5 border-success border-y border-r"
+                      )}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                             <div className={cn(
+                               "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider",
+                               error.severity === "high" && "bg-danger text-white",
+                               error.severity === "medium" && "bg-warning text-white",
+                               error.severity === "low" && "bg-success text-white"
+                             )}>
+                               Gợi ý sư phạm
+                             </div>
+                             <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                               <Sparkles className={cn(
+                                 "w-3 h-3",
+                                 error.severity === "high" && "text-danger fill-danger",
+                                 error.severity === "medium" && "text-warning fill-warning",
+                                 error.severity === "low" && "text-success fill-success"
+                               )} /> CHIẾN LƯỢC
+                             </span>
+                          </div>
+                        </div>
+                        <p className="text-sm font-bold text-foreground leading-snug">
+                          {error.recommendation}
+                        </p>
+                      </div>
+                    )}
                     
                     <div className="space-x-2">
                       <Button 

@@ -66,7 +66,7 @@ export function AssistantWelcome({ suggestions, insight, onActionClick, onCompos
                 <div className="bg-white border border-primary/10 p-6 rounded-3xl rounded-tl-sm shadow-lg hover:shadow-xl transition-shadow relative h-full flex flex-col">
                   <div className="flex items-center gap-2 mb-4 text-primary">
                     <Sparkles className="w-4 h-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Lưu ý sư phạm</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Tổng quan</span>
                   </div>
                   <div className="flex-1 flex items-center">
                     <p className="text-sm text-foreground leading-relaxed font-medium italic italic">

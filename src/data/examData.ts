@@ -257,7 +257,8 @@ export const commonErrors = [
     rootCause: "Học sinh không phân biệt được 'Không gian mẫu' (tập hợp có {}) và 'Số phần tử không gian mẫu' (con số). Viết n(Ω)=12 thay vì liệt kê Ω={1,2,...,12}.",
     example: "Viết n(Ω) = 12 thay vì Ω = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}.",
     affectedStudents: ["Nguyễn Minh Hường", "Nguyễn Kim Khánh", "Diễm My", "Nguyễn Công Minh", "Ngọc Diệp", "Trúc Anh", "Nguyễn Đức Tuấn", "Nguyễn Cảnh Vân", "Hải An", "Nguyễn Phương Linh"],
-    questionIds: ["1.2a"]
+    questionIds: ["1.2a"],
+    recommendation: "Thầy/cô cần củng cố lại cho học sinh cách phân biệt rõ ràng giữa yêu cầu liệt kê các phần tử của tập hợp không gian mẫu (ký hiệu là Ω) và việc ghi số lượng phần tử của không gian mẫu đó (ký hiệu là n(Ω)) để tránh nhầm lẫn khi trình bày."
   },
   {
     id: "ERR_004",
@@ -268,7 +269,8 @@ export const commonErrors = [
     rootCause: "Học sinh tính đúng kết quả nhưng bỏ qua hoàn toàn bước đối chiếu điều kiện xác định — lỗi mất điểm oan đặc biệt ở nhóm TB-Giỏi.",
     example: "Câu 3.0a: Thay x=16 vào tính kết quả nhưng không ghi '(Thỏa mãn ĐKXĐ)'.",
     affectedStudents: ["Nguyễn Minh Hường", "Nguyễn Công Minh", "Nguyễn Đức Tuấn", "Nguyễn Cảnh Vân", "Nguyễn Hoàng Mai", "Ngô Tuấn Anh", "Hiếu Nhân"],
-    questionIds: ["3.0a"]
+    questionIds: ["3.0a"],
+    recommendation: "Để khắc phục lỗi mất điểm trình bày đáng tiếc, thầy/cô hãy rèn lại cho các em thói quen luôn đối chiếu giá trị của x với điều kiện xác định và ghi chú thích '(Thỏa mãn ĐKXĐ)' ngay sau bước thay số vào biểu thức."
   },
   {
     id: "ERR_005",
@@ -279,7 +281,8 @@ export const commonErrors = [
     rootCause: "Học sinh rút gọn được biểu thức nhưng không có tư duy 'Xét hiệu' để chứng minh BĐT — thiếu bước A-B rồi xét dấu.",
     example: "Câu 3.0c: Rút gọn P = (√x+1)/√x thành công nhưng kết luận bừa P>1 mà không chứng minh.",
     affectedStudents: ["Nguyễn Minh Hường", "Nguyễn Kim Khánh", "Diễm My", "Ngọc Diệp", "Trúc Anh", "Nguyễn Thục Quyên", "Nguyễn Hoàng Mai"],
-    questionIds: ["3.0c"]
+    questionIds: ["3.0c"],
+    recommendation: "Thầy/cô nên ôn lại cho học sinh kỹ năng tách phần nguyên của phân thức (ví dụ biến đổi (√x+1)/√x = 1 + 1/√x) và cách lập luận đánh giá phần dư dựa trên điều kiện của x để có bước chứng minh hoàn thiện, chặt chẽ."
   },
   {
     id: "ERR_006",
@@ -290,18 +293,8 @@ export const commonErrors = [
     rootCause: "Học sinh lẫn lộn công thức Chu vi (2πr) và Diện tích (πr²) — hổng kiến thức gốc do trí nhớ.",
     example: "Câu 4.1a: Dùng S=πr² để tính chu vi, hoặc tính C=πr (quên nhân 2).",
     affectedStudents: ["Hoàng Phương Nhi", "Nguyễn Công Minh", "Trúc Anh", "Nguyễn Đức Tuấn", "Nguyễn Hoàng Mai", "Nguyễn Phương Linh"],
-    questionIds: ["4.1a"]
-  },
-  {
-    id: "ERR_001",
-    tag: "Nhầm Tần số & Tần suất",
-    count: 5,
-    percentage: 29,
-    severity: "medium" as const,
-    rootCause: "Học sinh gộp chung định nghĩa Tần số (số đếm) và Tần suất (tỉ lệ %). Tính 15/60=25% thay vì chỉ viết số 15.",
-    example: "Câu 1.1a: Viết 15/60 = 25% thay vì chỉ viết con số đếm 15.",
-    affectedStudents: ["Hoàng Phương Nhi", "Nguyễn Công Minh", "Nguyễn Đức Tuấn", "Hải An", "Đặng Minh Sơn"],
-    questionIds: ["1.1a", "1.1b"]
+    questionIds: ["4.1a"],
+    recommendation: "Thầy/cô hãy cho các em ôn tập và phân biệt lại hai công thức cơ bản thường bị nhầm lẫn là chu vi (C = 2πR) và diện tích (S = πR²) hình tròn, có thể mẹo nhỏ là nhấn mạnh số '2' trong công thức chu vi để các em ghi nhớ sâu hơn."
   }
 ];
 

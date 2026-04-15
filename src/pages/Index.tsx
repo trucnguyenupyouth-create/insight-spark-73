@@ -2,7 +2,6 @@ import { useState } from "react";
 import { MetricCard } from "@/components/MetricCard";
 import { ErrorAnalysis } from "@/components/ErrorAnalysis";
 import { GroupAnalysis } from "@/components/GroupAnalysis";
-import { KnowledgeGapAnalysis } from "@/components/KnowledgeGapAnalysis";
 import { AssistantWelcome } from "@/components/AssistantWelcome";
 import { ActionComposer } from "@/components/ActionComposer";
 import { ActionTracker } from "@/components/ActionTracker";
@@ -10,20 +9,16 @@ import { ErrorDetailModal } from "@/components/ErrorDetailModal";
 import { GroupDetailModal } from "@/components/GroupDetailModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { 
   BarChart3, 
-  Users, 
   Settings, 
-  AlertTriangle, 
   BookOpen,
   ArrowRight,
-  Zap
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { generateActionSuggestions, mockClassData } from "@/utils/actionEngine";
-import { classMetrics, students, commonErrors, studentGroups, mockTopics, sentActions, studentProgress } from "@/data/examData";
+import { classMetrics, commonErrors, studentGroups, sentActions, studentProgress } from "@/data/examData";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
@@ -127,7 +122,7 @@ const Index = () => {
       {/* Assistant Intelligence Center */}
       <AssistantWelcome 
         suggestions={suggestions} 
-        insight="Dựa trên phân tích 14 chủ đề, lớp 9A2 đang gặp rào cản lớn tại các bước Rút gọn biểu thức. Hãy cân nhắc tổ chức một buổi ôn tập nhóm cho 30% học sinh yếu."
+        insight="Để khắc phục việc học sinh mất điểm oan do nhầm lẫn cơ bản (sai công thức, nhầm Ω) và trình bày ẩu (quên ĐKXĐ, chứng minh tắt), thầy cô nên dành một tiết thực hành chuyên sâu rèn lại kỹ năng làm bài."
         onActionClick={handleActionClick}
         onComposeAction={handleComposeAction}
       />
@@ -178,40 +173,35 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Row 2: Logic Blockers & Action Tracking - ASYMMETRICAL 8:4 */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mt-12 overflow-hidden items-stretch">
-        <div className="lg:col-span-8">
-          <ErrorAnalysis 
-            errors={commonErrors} 
-            totalStudents={classMetrics.totalStudents}
-            onErrorClick={handleErrorClick}
-          />
-        </div>
-        <div className="lg:col-span-4">
-          <ActionTracker
-            sentActions={sentActions}
-            studentProgress={studentProgress}
-            onRevoke={handleRevokeAction}
-            onViewDetails={(id) => toast({ title: "Chi tiết", description: `Xem chi tiết hành động ${id}` })}
-            className="h-full"
-          />
-        </div>
+      {/* Row 2: Logic Blockers - FULL WIDTH */}
+      <div className="mt-12 overflow-hidden">
+        <ErrorAnalysis 
+          errors={commonErrors} 
+          totalStudents={classMetrics.totalStudents}
+          onErrorClick={handleErrorClick}
+        />
       </div>
 
-      {/* Row 3: Deep Analysis & Groups - SYMMETRICAL 6:6 */}
+      {/* Row 3: Action Tracking & Student Groups - SYMMETRICAL 6:6 */}
       <div className="mt-16 space-y-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
-          {/* Detailed Diagnosis */}
-          <div className="lg:col-span-6">
-            <KnowledgeGapAnalysis topics={mockTopics} />
-          </div>
-
           {/* Student Groups & Can thiệp */}
           <div className="lg:col-span-6">
             <GroupAnalysis 
               groups={studentGroups}
               totalStudents={classMetrics.totalStudents}
               onGroupClick={handleGroupClick}
+            />
+          </div>
+
+          {/* Action Tracking */}
+          <div className="lg:col-span-6">
+            <ActionTracker
+              sentActions={sentActions}
+              studentProgress={studentProgress}
+              onRevoke={handleRevokeAction}
+              onViewDetails={(id) => toast({ title: "Chi tiết", description: `Xem chi tiết hành động ${id}` })}
+              className="h-full"
             />
           </div>
         </div>
