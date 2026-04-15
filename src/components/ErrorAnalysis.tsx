@@ -69,11 +69,11 @@ export function ErrorAnalysis({ errors, totalStudents, onErrorClick }: ErrorAnal
           {sortedErrors.map((error) => {
             const SeverityIcon = getSeverityIcon(error.severity);
             return (
-              <div key={error.id} className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+              <div key={error.id} className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
 
-                {/* LEFT: Original Mistake Card — unchanged from before */}
+                {/* LEFT: Original Mistake Card — 2/3 width */}
                 <div
-                  className="p-4 border border-border rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer"
+                  className="lg:col-span-2 p-4 border border-border rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer"
                   onClick={() => onErrorClick?.(error)}
                 >
                   <div className="flex items-start space-x-3">
@@ -179,7 +179,7 @@ export function ErrorAnalysis({ errors, totalStudents, onErrorClick }: ErrorAnal
                           Chiến lược
                         </span>
                       </div>
-                      <p className="text-sm font-semibold text-foreground leading-relaxed">
+                      <p className="text-sm font-normal text-foreground leading-relaxed">
                         {error.recommendation}
                       </p>
                     </div>
