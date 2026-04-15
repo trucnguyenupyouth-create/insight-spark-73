@@ -65,121 +65,129 @@ export function ErrorAnalysis({ errors, totalStudents, onErrorClick }: ErrorAnal
           </Badge>
         </div>
         
-        <div className="space-y-3">
+        <div className="space-y-4">
           {sortedErrors.map((error) => {
             const SeverityIcon = getSeverityIcon(error.severity);
             return (
-              <div 
-                key={error.id}
-                className="p-4 border border-border rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer"
-                onClick={() => onErrorClick?.(error)}
-              >
-                <div className="flex items-start space-x-3">
-                  <div className={cn(
-                    "p-2 rounded-lg",
-                    getSeverityColor(error.severity) === "danger" && "bg-danger-light text-danger",
-                    getSeverityColor(error.severity) === "warning" && "bg-warning-light text-warning",
-                    getSeverityColor(error.severity) === "success" && "bg-success-light text-success"
-                  )}>
-                    <SeverityIcon className="w-4 h-4" />
-                  </div>
-                  
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-card-foreground">
-                        {error.tag}
-                      </h4>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="outline" className={cn(
-                          "text-[10px] uppercase font-bold px-2 py-0 h-5 flex items-center gap-1",
-                          getSeverityColor(error.severity) === "danger" && "border-danger/30 text-danger bg-danger/5",
-                          getSeverityColor(error.severity) === "warning" && "border-warning/30 text-warning bg-warning/5",
-                          getSeverityColor(error.severity) === "success" && "border-success/30 text-success bg-success/5"
-                        )}>
-                          <SeverityIcon className="w-3 h-3" />
-                          <span className="hidden sm:inline">
-                            {error.severity === "high" ? "Nghiêm trọng" : 
-                             error.severity === "medium" ? "Trung bình" : "Nhẹ"}
-                          </span>
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4" />
-                        <span>{error.count} học sinh ({error.percentage}%)</span>
-                      </div>
-                      <div>
-                        Câu: {error.questionIds.join(", ")}
-                      </div>
-                    </div>
-                    
-                    <p className="text-sm text-muted-foreground italic mb-4">
-                      Ví dụ: "{error.example}"
-                    </p>
+              <div key={error.id} className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
 
-                    {error.recommendation && (
-                      <div className={cn(
-                        "p-4 rounded-xl border-l-4 shadow-sm space-y-2 animate-in fade-in slide-in-from-top-1 duration-500",
-                        error.severity === "high" && "bg-danger/5 border-danger border-y border-r",
-                        error.severity === "medium" && "bg-warning/5 border-warning border-y border-r",
-                        error.severity === "low" && "bg-success/5 border-success border-y border-r"
-                      )}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                             <div className={cn(
-                               "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider",
-                               error.severity === "high" && "bg-danger text-white",
-                               error.severity === "medium" && "bg-warning text-white",
-                               error.severity === "low" && "bg-success text-white"
-                             )}>
-                               Gợi ý sư phạm
-                             </div>
-                             <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                               <Sparkles className={cn(
-                                 "w-3 h-3",
-                                 error.severity === "high" && "text-danger fill-danger",
-                                 error.severity === "medium" && "text-warning fill-warning",
-                                 error.severity === "low" && "text-success fill-success"
-                               )} /> CHIẾN LƯỢC
-                             </span>
-                          </div>
+                {/* LEFT: Original Mistake Card — unchanged from before */}
+                <div
+                  className="p-4 border border-border rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer"
+                  onClick={() => onErrorClick?.(error)}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className={cn(
+                      "p-2 rounded-lg shrink-0",
+                      getSeverityColor(error.severity) === "danger" && "bg-danger-light text-danger",
+                      getSeverityColor(error.severity) === "warning" && "bg-warning-light text-warning",
+                      getSeverityColor(error.severity) === "success" && "bg-success-light text-success"
+                    )}>
+                      <SeverityIcon className="w-4 h-4" />
+                    </div>
+
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-card-foreground">
+                          {error.tag}
+                        </h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline" className={cn(
+                            "text-[10px] uppercase font-bold px-2 py-0 h-5 flex items-center gap-1",
+                            getSeverityColor(error.severity) === "danger" && "border-danger/30 text-danger bg-danger/5",
+                            getSeverityColor(error.severity) === "warning" && "border-warning/30 text-warning bg-warning/5",
+                            getSeverityColor(error.severity) === "success" && "border-success/30 text-success bg-success/5"
+                          )}>
+                            <SeverityIcon className="w-3 h-3" />
+                            <span className="hidden sm:inline">
+                              {error.severity === "high" ? "Nghiêm trọng" :
+                               error.severity === "medium" ? "Trung bình" : "Nhẹ"}
+                            </span>
+                          </Badge>
                         </div>
-                        <p className="text-sm font-bold text-foreground leading-snug">
-                          {error.recommendation}
-                        </p>
                       </div>
-                    )}
-                    
-                    <div className="space-x-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewStudents(error);
-                        }}
-                        className="text-xs text-primary hover:text-primary-dark"
-                      >
-                        <Users className="w-3 h-3 mr-1" />
-                        Xem chi tiết học sinh
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onErrorClick?.(error);
-                        }}
-                        className="text-xs text-primary hover:text-primary-dark"
-                      >
-                        <Eye className="w-3 h-3 mr-1" />
-                        Xem chi tiết
-                      </Button>
+
+                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                        <div className="flex items-center space-x-1">
+                          <Users className="w-4 h-4" />
+                          <span>{error.count} học sinh ({error.percentage}%)</span>
+                        </div>
+                        <div>
+                          Câu: {error.questionIds.join(", ")}
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-muted-foreground italic">
+                        Ví dụ: "{error.example}"
+                      </p>
+
+                      <div className="space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewStudents(error);
+                          }}
+                          className="text-xs text-primary hover:text-primary-dark"
+                        >
+                          <Users className="w-3 h-3 mr-1" />
+                          Xem chi tiết học sinh
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onErrorClick?.(error);
+                          }}
+                          className="text-xs text-primary hover:text-primary-dark"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          Xem chi tiết
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                {/* RIGHT: Standalone Pedagogical Recommendation Panel */}
+                {error.recommendation ? (
+                  <div className={cn(
+                    "p-5 rounded-lg border-l-4 flex flex-col justify-between",
+                    error.severity === "high" && "bg-danger/5 border-danger border border-l-danger",
+                    error.severity === "medium" && "bg-warning/5 border-warning border border-l-warning",
+                    error.severity === "low" && "bg-success/5 border-success border border-l-success"
+                  )}>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className={cn(
+                          "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider",
+                          error.severity === "high" && "bg-danger text-white",
+                          error.severity === "medium" && "bg-warning text-white",
+                          error.severity === "low" && "bg-success text-white"
+                        )}>
+                          Gợi ý sư phạm
+                        </div>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                          <Sparkles className={cn(
+                            "w-3 h-3",
+                            error.severity === "high" && "text-danger fill-danger",
+                            error.severity === "medium" && "text-warning fill-warning",
+                            error.severity === "low" && "text-success fill-success"
+                          )} />
+                          Chiến lược
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-foreground leading-relaxed">
+                        {error.recommendation}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="hidden lg:block" />
+                )}
+
               </div>
             );
           })}
