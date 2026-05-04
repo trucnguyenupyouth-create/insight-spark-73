@@ -1,0 +1,34 @@
+import { createClient } from '@supabase/supabase-js';
+import { AnalyticsData, ExamSummary } from '../types/analytics';
+
+export const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || 'http://placeholder',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder'
+);
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+
+const getHeaders = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return {
+    'Authorization': `Bearer ${session?.access_token}`,
+    'Content-Type': 'application/json',
+  };
+};
+
+export const fetchExams = async (): Promise<ExamSummary[]> => {
+  const headers = await getHeaders();
+  const res = await fetch(`${API_URL}/api/exams/`, { headers });
+  if (!res.ok) throw new Error('Failed to fetch exams');
+  return res.json();
+};
+
+export const fetchAnalytics = async (examId: number, force = false): Promise<AnalyticsData> => {
+  const headers = await getHeaders();
+  const endpoint = force ? `${API_URL}/api/exams/${examId}/analytics/refresh/` : `${API_URL}/api/exams/${examId}/analytics/`;
+  const method = force ? 'POST' : 'GET';
+  
+  const res = await fetch(endpoint, { method, headers });
+  if (!res.ok) throw new Error('Failed to fetch analytics');
+  return res.json();
+};
