@@ -55,7 +55,7 @@ const DashboardPage = () => {
 
   // Event handlers
   const handleErrorClick = (error: any) => {
-    // Look up real error details from map
+    // Merge base error with deep data from errorDetailMap
     const detailedError = errorDetailMap[error.id] || { fullDescription: error.tag, commonMistakes: [], affectedStudents: [] };
     setSelectedError({ ...error, ...detailedError });
     setIsErrorModalOpen(true);
@@ -63,7 +63,7 @@ const DashboardPage = () => {
 
   const handleGroupClick = (group: any) => {
     // Look up real group details from map
-    const detailedGroup = groupDetailMap[group.name] || { commonWeaknesses: [], commonErrors: [], interventionPlan: { immediate: [], longTerm: [] } };
+    const detailedGroup = groupDetailMap[group.level] || groupDetailMap[group.name] || { commonWeaknesses: [], commonErrors: [], interventionPlan: { immediate: [], longTerm: [] } };
     setSelectedGroup({ ...group, ...detailedGroup });
     setIsGroupModalOpen(true);
   };
@@ -260,6 +260,7 @@ const DashboardPage = () => {
       {selectedGroup && (
         <GroupDetailModal
           group={selectedGroup}
+          allStudents={analyticsData?.students || []}
           isOpen={isGroupModalOpen}
           onClose={() => {
             setIsGroupModalOpen(false);

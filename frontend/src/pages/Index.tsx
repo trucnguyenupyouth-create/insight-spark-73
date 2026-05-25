@@ -44,18 +44,22 @@ const Index = () => {
   const classMetrics = analyticsData?.classMetrics ?? { totalStudents: 0, averageScore: 0, highestScore: 0, lowestScore: 0, attendanceRate: 0 };
   const commonErrors = analyticsData?.commonErrors ?? [];
   const studentGroups = analyticsData?.studentGroups ?? [];
+  const errorDetailMap = analyticsData?.errorDetailMap ?? {};
+  const groupDetailMap = analyticsData?.groupDetailMap ?? {};
 
   // Generate smart suggestions using the action engine
   const suggestions = generateActionSuggestions(mockClassData);
 
   // Event handlers
   const handleErrorClick = (error: any) => {
-    setSelectedError(error);
+    const detailedError = errorDetailMap[error.id] || { fullDescription: error.tag, commonMistakes: [], affectedStudents: [] };
+    setSelectedError({ ...error, ...detailedError });
     setIsErrorModalOpen(true);
   };
 
   const handleGroupClick = (group: any) => {
-    setSelectedGroup(group);
+    const detailedGroup = groupDetailMap[group.level] || groupDetailMap[group.name] || { commonWeaknesses: [], commonErrors: [], interventionPlan: { immediate: [], longTerm: [] } };
+    setSelectedGroup({ ...group, ...detailedGroup });
     setIsGroupModalOpen(true);
   };
 
@@ -260,6 +264,7 @@ const Index = () => {
 
       <GroupDetailModal
         group={selectedGroup}
+        allStudents={analyticsData?.students || []}
         isOpen={isGroupModalOpen}
         onClose={() => {
           setIsGroupModalOpen(false);

@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, Users, FileText, Eye } from "lucide-react";
-import { errorDetailMap } from "@/data/exam177DeepData";
 
 interface CommonError {
   id: string;
@@ -15,6 +14,10 @@ interface CommonError {
   example: string;
   affectedStudents: string[];
   questionIds: (number | string)[];
+  fullDescription?: string;
+  commonMistakes?: string[];
+  relatedTopics?: string[];
+  suggestedActions?: { type: string; title: string; description: string }[];
 }
 
 interface ErrorDetailModalProps {
@@ -27,8 +30,8 @@ interface ErrorDetailModalProps {
 export function ErrorDetailModal({ error, isOpen, onClose, onAction }: ErrorDetailModalProps) {
   if (!error) return null;
 
-  // Look up deep data from analytics JSON using the error's ERR_ id
-  const errorDetails = (errorDetailMap as any)[error.id];
+  // error object already contains deep data passed down from DashboardPage
+  const errorDetails = error;
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -55,8 +58,8 @@ export function ErrorDetailModal({ error, isOpen, onClose, onAction }: ErrorDeta
   };
 
   // Compute group counts from affected students
-  const yeuCount = errorDetails?.affectedStudents?.filter((s: any) => s.group === "Yếu").length ?? 0;
-  const otherCount = (errorDetails?.affectedStudents?.length ?? 0) - yeuCount;
+  const yeuCount = Array.isArray(errorDetails?.affectedStudents) ? errorDetails.affectedStudents.filter((s: any) => s?.group === "Yếu").length : 0;
+  const otherCount = (Array.isArray(errorDetails?.affectedStudents) ? errorDetails.affectedStudents.length : 0) - yeuCount;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -110,7 +113,7 @@ export function ErrorDetailModal({ error, isOpen, onClose, onAction }: ErrorDeta
                       <div>
                         <h4 className="font-medium text-sm mb-2">Phân tích gốc rễ</h4>
                         <div className="bg-muted/50 p-3 rounded text-sm space-y-1">
-                          {errorDetails.fullDescription.split('\n').map((line: string, i: number) => (
+                          {(errorDetails.fullDescription || "Không có thông tin mô tả chi tiết.").split('\n').map((line: string, i: number) => (
                             <p key={i} className={i === 0 ? "font-medium" : "text-muted-foreground"}>{line}</p>
                           ))}
                         </div>
@@ -119,7 +122,7 @@ export function ErrorDetailModal({ error, isOpen, onClose, onAction }: ErrorDeta
                       <div>
                         <h4 className="font-medium text-sm mb-2">Ví dụ sai cụ thể</h4>
                         <div className="space-y-2">
-                          {errorDetails.commonMistakes.map((mistake: string, index: number) => (
+                          {(errorDetails.commonMistakes || []).map((mistake: string, index: number) => (
                             <div key={index} className="flex items-start space-x-2 text-sm">
                               <div className="w-1 h-1 rounded-full bg-danger mt-2 flex-shrink-0"></div>
                               <span className="text-muted-foreground">{mistake}</span>

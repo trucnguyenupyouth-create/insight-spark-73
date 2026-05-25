@@ -8,7 +8,6 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { User, TrendingUp, AlertTriangle, FileText, MessageSquare, Send, Phone } from "lucide-react";
-import { enhancedStudents } from "@/data/exam177DeepData";
 
 interface Student {
   id: string;
@@ -27,7 +26,7 @@ interface Student {
     total: number;
   };
   questionResults: Array<{
-    question: number;
+    question: string | number;
     score: number;
     maxScore: number;
     status: "correct" | "incorrect" | "partial";
@@ -47,21 +46,15 @@ interface StudentProfileModalProps {
   onAction?: (actionType: string, student: Student) => void;
 }
 
-// Real student data is loaded from enhancedStudents (analytics JSON)
-
 export function StudentProfileModal({ student, isOpen, onClose, onAction }: StudentProfileModalProps) {
   const [activeTab, setActiveTab] = useState("overview");
   
   if (!student) return null;
 
-  // Look up real question-level data from analytics enhancedStudents array
-  const realData = (enhancedStudents as any[]).find(
-    (s: any) => s.id === student.id || s.studentId === student.studentId || s.name === student.name
-  );
-  // Merge: real data provides questionResults; passed prop provides name/score/group
-  const studentData = realData
-    ? { ...realData, ...student, questionResults: realData.questionResults }
-    : { ...student };
+  // Since we removed enhancedStudents import, the student object passed in 
+  // via props from GroupDetailModal (which got it from DashboardPage) 
+  // MUST now contain all the necessary data.
+  const studentData = student;
 
   const getStatusColor = (status: string) => {
     switch (status) {

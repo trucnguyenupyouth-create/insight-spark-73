@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { Users, TrendingDown, BookOpen, AlertTriangle } from "lucide-react";
+import { Users, TrendingDown } from "lucide-react";
 
 interface StudentGroup {
   id: string;
@@ -139,52 +139,7 @@ export function GroupAnalysis({ groups, totalStudents, onGroupClick, className }
                   />
                 </div>
 
-                {/* Issues */}
-                {(group.commonErrors.length > 0 || group.knowledgeGaps.length > 0) && (
-                  <div className="space-y-2">
-                    {group.commonErrors.length > 0 && (
-                      <div>
-                        <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-1">
-                          <AlertTriangle className="w-4 h-4" />
-                          <span>Lỗi sai thường gặp</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {group.commonErrors.slice(0, 2).map((error, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {error}
-                            </Badge>
-                          ))}
-                          {group.commonErrors.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{group.commonErrors.length - 2} khác
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    )}
 
-                    {group.knowledgeGaps.length > 0 && (
-                      <div>
-                        <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-1">
-                          <BookOpen className="w-4 h-4" />
-                          <span>Lỗ hổng kiến thức</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {group.knowledgeGaps.slice(0, 2).map((gap, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {gap}
-                            </Badge>
-                          ))}
-                          {group.knowledgeGaps.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{group.knowledgeGaps.length - 2} khác
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {/* Action button */}
                 <Button 

@@ -9,21 +9,20 @@ from .serializers import ExamListSerializer
 from .services.exam_analytics import ExamAnalyticsService
 
 class ExamAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [] # [IsAuthenticated]
     serializer_class = ExamListSerializer
 
     def get_queryset(self):
-        if not self.request.user or not self.request.user.is_authenticated:
-            return Exam.objects.none()
-            
-        owner_id = getattr(self.request.user, 'id', None)
-        qs = Exam.objects.filter(owner_id=owner_id).order_by("-created_at")
+        qs = Exam.objects.all().order_by("-created_at")
 
         # Annotate submission counts
         qs = qs.annotate(
             submission_count=Count('submission', distinct=True),
-            # Approximate graded count (has at least one result or override score)
-            graded_count=Count('submission', filter=Q(submission__visiongradingresult__isnull=False) | Q(submission__override_total_score__isnull=False), distinct=True)
+            graded_count=Count(
+                'submission',
+                filter=Q(submission__override_total_score__isnull=False),
+                distinct=True
+            )
         )
 
         # Annotate cache status

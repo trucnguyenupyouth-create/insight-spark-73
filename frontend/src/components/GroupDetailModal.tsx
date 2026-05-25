@@ -7,7 +7,6 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { Users, TrendingUp, AlertTriangle, FileText, MessageSquare, User } from "lucide-react";
 import { StudentProfileModal } from "./StudentProfileModal";
-import { groupDetailMap, enhancedStudents } from "@/data/exam177DeepData";
 
 interface GroupStudent {
   id: string;
@@ -34,7 +33,7 @@ interface Student {
     total: number;
   };
   questionResults: Array<{
-    question: number;
+    question: string | number;
     score: number;
     maxScore: number;
     status: "correct" | "incorrect" | "partial";
@@ -53,22 +52,30 @@ interface GroupDetailModalProps {
     students: GroupStudent[];
     averageScore: number;
     riskLevel: string;
+    count?: number;
+    commonErrors?: any[];
+    commonWeaknesses?: any[];
+    interventionPlan?: any;
   } | null;
   isOpen: boolean;
   onClose: () => void;
   onAction?: (actionType: string, group: any) => void;
+  allStudents?: any[]; // Passed from DashboardPage to avoid hardcoded student lookup
 }
 
-// groupDetailMap and enhancedStudents are imported from exam177DeepData
-
-export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDetailModalProps) {
+export function GroupDetailModal({ group, isOpen, onClose, onAction, allStudents = [] }: GroupDetailModalProps) {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showStudentProfile, setShowStudentProfile] = useState(false);
   
   if (!group) return null;
 
-  const groupKey = group.name.replace("Nhóm ", "");
-  const groupData = (groupDetailMap as any)[groupKey] || (groupDetailMap as any)["Yếu"];
+  // group is passed with all details directly from DashboardPage now
+  const groupData = group;
+  // Ensure defaults exist for UI rendering if not provided by backend
+  const displayCount = groupData.count || groupData.students.length;
+  const commonErrors = groupData.commonErrors || [];
+  const commonWeaknesses = groupData.commonWeaknesses || [];
+  const interventionPlan = groupData.interventionPlan || { immediate: [], longTerm: [] };
 
   const getRiskColor = (riskScore: number) => {
     if (riskScore >= 70) return "text-danger";
@@ -91,8 +98,8 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
   };
 
   const handleStudentClick = (student: GroupStudent) => {
-    // Look up real data from the analytics enhancedStudents array
-    const realData = (enhancedStudents as any[]).find(
+    // Look up real data from the provided allStudents array instead of hardcoded data
+    const realData = allStudents.find(
       (s: any) => s.id === student.id || s.name === student.name
     );
     const enhancedStudent: Student = realData ? {
@@ -104,7 +111,7 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
       studentId: `HS${student.id}`,
       averageScore: student.score,
       group: student.group as "Giỏi" | "Khá" | "TB" | "Yếu",
-      scoreHistory: [{ test: "GK2", score: student.score }],
+      scoreHistory: [{ test: "Current", score: student.score }],
       riskBreakdown: { averageScore: student.score, severity: student.riskScore * 0.3, trend: 0, total: student.riskScore },
       questionResults: [],
       progressSteps: []
@@ -147,7 +154,7 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
               <Card className="p-4">
                 <h3 className="font-semibold mb-3">Danh sách học sinh</h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {groupData.students.map((student) => (
+                  {(groupData.students || []).map((student: any) => (
                     <div 
                       key={student.id} 
                       className="flex items-center justify-between p-2 rounded border border-border hover:bg-accent/50 transition-colors cursor-pointer group"
@@ -182,7 +189,7 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
                   Lỗi sai phổ biến trong nhóm
                 </h3>
                 <div className="space-y-3">
-                  {groupData.commonErrors.map((error, index) => (
+                  {(groupData.commonErrors || []).map((error: any, index: number) => (
                     <div key={index} className={cn(
                       "p-3 rounded-lg border",
                       getErrorSeverityColor(error.severity)
@@ -212,7 +219,7 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
                   Lỗ hổng kiến thức chính
                 </h3>
                 <div className="space-y-4">
-                  {groupData.commonWeaknesses.map((weakness, index) => (
+                  {(groupData.commonWeaknesses || []).map((weakness: any, index: number) => (
                     <div key={index} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm">{weakness.topic}</span>
@@ -235,7 +242,7 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
                   <div>
                     <h4 className="font-medium text-sm mb-2 text-danger">Hành động ngay lập tức</h4>
                     <div className="space-y-1">
-                      {groupData.interventionPlan.immediate.map((action, index) => (
+                      {(groupData.interventionPlan?.immediate || []).map((action: any, index: number) => (
                         <div key={index} className="flex items-start space-x-2 text-xs">
                           <div className="w-1 h-1 rounded-full bg-danger mt-1.5 flex-shrink-0"></div>
                           <span>{action}</span>
@@ -247,7 +254,7 @@ export function GroupDetailModal({ group, isOpen, onClose, onAction }: GroupDeta
                   <div>
                     <h4 className="font-medium text-sm mb-2 text-warning">Kế hoạch dài hạn</h4>
                     <div className="space-y-1">
-                      {groupData.interventionPlan.longTerm.map((action, index) => (
+                      {(groupData.interventionPlan?.longTerm || []).map((action: any, index: number) => (
                         <div key={index} className="flex items-start space-x-2 text-xs">
                           <div className="w-1 h-1 rounded-full bg-warning mt-1.5 flex-shrink-0"></div>
                           <span>{action}</span>

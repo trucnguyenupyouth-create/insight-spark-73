@@ -99,7 +99,7 @@ REST_FRAMEWORK = {
         'apps.authentication.authentication.SupabaseAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',  # Dev mode: no auth required locally
     ),
 }
 

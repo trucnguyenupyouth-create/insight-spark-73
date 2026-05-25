@@ -2,13 +2,16 @@ import json
 import logging
 from django.db.models import Sum, Q
 from ..models import VisionGradingResult, VisionGradingStep, ExamAnalyticsCache, Submission, Exam, Question
-import google.generativeai as genai
+from google import genai
+from google.genai import types as genai_types
+import google.generativeai as legacy_genai
 from .analytics_prompt import ANALYTICS_SYSTEM_PROMPT
+from .supabase_cache import get_cached_analytics, upsert_cached_analytics
 
 logger = logging.getLogger(__name__)
 
 class ExamAnalyticsService:
-    def __init__(self, model_name="gemini-3-pro-preview", api_key=None):
+    def __init__(self, model_name="gemini-3-flash-preview", api_key=None):
         self.model_name = model_name
         self.api_key = api_key
 
@@ -23,7 +26,28 @@ class ExamAnalyticsService:
                 cache = ExamAnalyticsCache.objects.get(exam_id=exam_id)
                 return cache.analytics_json
             except ExamAnalyticsCache.DoesNotExist:
-                pass
+                # Fallback: Try reading from Supabase cache
+                supabase_data = get_cached_analytics(exam_id)
+                if supabase_data and "analytics_json" in supabase_data:
+                    logger.info(f"Cache miss on local DB for exam {exam_id}, but found in Supabase. Back-filling local cache.")
+                    try:
+                        ExamAnalyticsCache.objects.update_or_create(
+                            exam_id=exam_id,
+                            defaults={
+                                'analytics_json': supabase_data['analytics_json'],
+                                'model_name': supabase_data.get('model_name', self.model_name),
+                                'version': supabase_data.get('version', 1)
+                            }
+                        )
+                    except Exception as local_err:
+                        logger.error(f"Failed to back-fill local cache for exam {exam_id}: {local_err}")
+                    return supabase_data['analytics_json']
+            except Exception as e:
+                logger.error(f"Local cache read failed: {e}")
+                # Fallback: Try reading from Supabase cache
+                supabase_data = get_cached_analytics(exam_id)
+                if supabase_data and "analytics_json" in supabase_data:
+                    return supabase_data['analytics_json']
 
         logger.info(f"Computing analytics for exam {exam_id}")
         
@@ -41,7 +65,7 @@ class ExamAnalyticsService:
         group_weaknesses = self._compute_group_weaknesses(student_groups, score_matrix)
 
         # --- Phase 2: AI-Powered Analysis ---
-        ai_response = self._run_ai_analysis(exam, questions, steps, student_groups)
+        ai_response = self._run_ai_analysis(exam, questions, steps, student_groups, score_matrix, group_weaknesses)
 
         # --- Assembly: Merge Deterministic + AI Data ---
         final_payload = self._assemble_final_output(
@@ -55,15 +79,21 @@ class ExamAnalyticsService:
             steps
         )
 
-        # Cache result
-        ExamAnalyticsCache.objects.update_or_create(
-            exam_id=exam_id,
-            defaults={
-                'analytics_json': final_payload,
-                'model_name': self.model_name,
-                'version': 1
-            }
-        )
+        # Cache result - local Django DB
+        try:
+            ExamAnalyticsCache.objects.update_or_create(
+                exam_id=exam_id,
+                defaults={
+                    'analytics_json': final_payload,
+                    'model_name': self.model_name,
+                    'version': 1
+                }
+            )
+        except Exception as e:
+            logger.error(f"Failed to save cache to local Django DB: {e}")
+
+        # Cache result - Supabase (parallel write)
+        upsert_cached_analytics(exam_id, final_payload, self.model_name)
 
         return final_payload
 
@@ -139,10 +169,9 @@ class ExamAnalyticsService:
                 }
                 raw_sum += score
             
-            # Use report score if present, then override, then sum
-            if getattr(s, 'report_score', None) is not None:
-                matrix[s.id]['total_score'] = float(s.report_score)
-            elif getattr(s, 'override_total_score', None) is not None:
+            # Scoring priority: override_total_score > raw sum
+            # (report_score column does not exist in this production schema)
+            if getattr(s, 'override_total_score', None) is not None:
                 matrix[s.id]['total_score'] = float(s.override_total_score)
             else:
                 matrix[s.id]['total_score'] = raw_sum
@@ -263,43 +292,114 @@ class ExamAnalyticsService:
                     
         return group_weaknesses
 
-    def _run_ai_analysis(self, exam, questions, steps, student_groups):
+    def _run_ai_analysis(self, exam, questions, steps, student_groups, score_matrix, group_weaknesses):
         """Phase 2: Single structured LLM call to get topics, error taxonomy, and interventions."""
-        # 1. Prepare Questions
-        q_context = []
+        # 1. Format Questions
+        q_text_lines = []
+        q_map = {}
         for q in questions:
-            q_context.append({
-                "label": q.label,
-                "content_summary": getattr(q, 'content_summary', '') or ""
-            })
+            q_map[q.id] = q.label
+            q_text_lines.append(f"### {q.label}")
+            q_text_lines.append(f"Nội dung: {getattr(q, 'content_summary', '') or ''}")
+            q_text_lines.append("---")
+        q_text = "\n".join(q_text_lines)
 
-        # 2. Prepare Errors (only incorrect original steps — limit to 150 for token budget)
+        # 2. Errors grouped by question
         bad_steps = [s for s in steps if not s.is_correct and s.error_classification in ('original', 'critical', 'none')]
-        error_context = []
-        for s in bad_steps[:150]:
-            error_context.append({
-                "submission_id": s.grading_result.submission_id,
-                "question_id": s.grading_result.question_id,
-                "step": s.description,
-                "feedback": s.feedback
-            })
+        errors_by_q = {}
+        for s in bad_steps:
+            q_label = q_map.get(s.grading_result.question_id, "?")
+            errors_by_q.setdefault(q_label, []).append(s)
+            
+        error_text_lines = []
+        for q_label, s_list in errors_by_q.items():
+            unique_students = len(set(s.grading_result.submission_id for s in s_list))
+            error_text_lines.append(f"### Câu {q_label} — {len(s_list)} lỗi từ {unique_students} học sinh")
+            error_text_lines.append("| Student ID | Bước sai | Feedback chấm |")
+            error_text_lines.append("|------------|----------|---------------|")
+            for s in s_list[:30]: # limit to avoid blown budget
+                feedback_clean = s.feedback.replace('\n', ' ') if s.feedback else ''
+                step_clean = s.description.replace('\n', ' ') if s.description else ''
+                error_text_lines.append(f"| {s.grading_result.submission_id} | {step_clean} | {feedback_clean} |")
+            error_text_lines.append("---\n")
+        error_text = "\n".join(error_text_lines)
 
-        # 3. Prepare Groups
-        group_context = {
-            g: [st['name'] for st in data['students']] for g, data in student_groups.items()
-        }
+        # 3. Student Score Matrix
+        score_text_lines = []
+        sorted_qs = sorted(questions, key=lambda x: x.label)
+        q_headers = " | ".join(q.label for q in sorted_qs)
+        score_text_lines.append(f"| Student ID | Tên | Tổng | {q_headers} |")
+        header_sep = "|------------|-----|------|" + "|".join("---" for _ in sorted_qs) + "|"
+        score_text_lines.append(header_sep)
+        
+        for g_name, g_data in student_groups.items():
+            for s in g_data['students']:
+                s_id = int(s['id'])
+                s_name = s['name']
+                total = s['score']
+                row_scores = []
+                for q in sorted_qs:
+                    res = score_matrix[s_id]['results'].get(q.id, {})
+                    score = res.get('score', 0)
+                    max_s = res.get('maxScore', 1)
+                    row_scores.append(f"{score}/{max_s}")
+                score_text_lines.append(f"| {s_id} | {s_name} | {total} | {' | '.join(row_scores)} |")
+        score_text = "\n".join(score_text_lines)
 
-        prompt = f"""Exam: {exam.name} (Lớp {exam.grade_level})
+        # 4. Group Performance (from group_weaknesses)
+        perf_text_lines = []
+        for g_name, weaknesses in group_weaknesses.items():
+            count = student_groups[g_name]['count']
+            avg = student_groups[g_name]['averageScore']
+            perf_text_lines.append(f"Nhóm {g_name} ({count} học sinh, trung bình {avg}/10):")
+            if weaknesses:
+                perf_text_lines.append("| Câu | Tỉ lệ sai |")
+                perf_text_lines.append("|-----|-----------|")
+                for w in weaknesses:
+                    perf_text_lines.append(f"| {w['question_label']} | {w['percentage']}% |")
+            else:
+                perf_text_lines.append("Không có điểm yếu nổi bật.")
+            perf_text_lines.append("")
+        perf_text = "\n".join(perf_text_lines)
 
-Questions:
-{json.dumps(q_context, ensure_ascii=False, indent=2)}
+        # 5. Group Summary
+        group_text_lines = []
+        for g_name, g_data in student_groups.items():
+            count = g_data['count']
+            avg = g_data['averageScore']
+            group_text_lines.append(f"Nhóm {g_name} ({count} HS, TB: {avg}):")
+            for s in g_data['students']:
+                group_text_lines.append(f"  - {s['name']}: {s['score']} điểm")
+            group_text_lines.append("")
+        group_text = "\n".join(group_text_lines)
 
-Errors Sample:
-{json.dumps(error_context, ensure_ascii=False, indent=2)}
+        prompt = f'''Đề thi: {exam.name} (Lớp {exam.grade_level})
 
-Groups:
-{json.dumps(group_context, ensure_ascii=False, indent=2)}
-"""
+═══════════════════════════════════════════
+DANH SÁCH CÂU HỎI
+═══════════════════════════════════════════
+{q_text}
+
+═══════════════════════════════════════════
+CÁC LỖI SAI — NHÓM THEO CÂU HỎI
+═══════════════════════════════════════════
+{error_text}
+
+═══════════════════════════════════════════
+ĐIỂM SỐ TỪNG HỌC SINH THEO TỪNG CÂU
+═══════════════════════════════════════════
+{score_text}
+
+═══════════════════════════════════════════
+HIỆU SUẤT TỪNG NHÓM THEO CÂU
+═══════════════════════════════════════════
+{perf_text}
+
+═══════════════════════════════════════════
+PHÂN NHÓM HỌC SINH
+═══════════════════════════════════════════
+{group_text}
+'''
         try:
             # Configure API key — prefer explicitly passed key, then fall back to settings
             from django.conf import settings as dj_settings
@@ -307,16 +407,33 @@ Groups:
             if not api_key:
                 raise ValueError("No Gemini API key configured")
 
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(
-                model_name=self.model_name,
-                system_instruction=ANALYTICS_SYSTEM_PROMPT,
-                generation_config=genai.types.GenerationConfig(
-                    response_mime_type="application/json"
+            client = genai.Client(api_key=api_key)
+            
+            # Configure Thinking Config conditionally
+            config_kwargs = {
+                "system_instruction": ANALYTICS_SYSTEM_PROMPT,
+                "response_mime_type": "application/json",
+            }
+            if "flash" in self.model_name.lower() or "thinking" in self.model_name.lower():
+                config_kwargs["thinking_config"] = genai_types.ThinkingConfig(
+                    include_thoughts=True,
+                    thinking_budget=16000
                 )
+                
+            response = client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=genai_types.GenerateContentConfig(**config_kwargs)
             )
-            response = model.generate_content(prompt)
-            raw = response.text.strip()
+            
+            # Extract JSON from parts (bypassing thoughts)
+            response_text = ""
+            for candidate in response.candidates:
+                for part in candidate.content.parts:
+                    if not getattr(part, "thought", False):
+                        response_text += part.text or ""
+                        
+            raw = response_text.strip()
             # Strip markdown code fences if model adds them
             if raw.startswith("```"):
                 raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
@@ -335,23 +452,42 @@ Groups:
         errors_ai = ai_response.get("error_taxonomy", [])
         interventions_ai = ai_response.get("group_interventions", {})
 
+        # Pre-compute mapping of student_id -> student_name
+        student_id_to_name = {}
+        for s_id, s_data in students_with_risk.items():
+            student_id_to_name[int(s_id)] = s_data['submission'].student_name or f"HS{s_id}"
+
         # Pre-compute: which students had incorrect results per question label
         # q_label -> set of student names who scored <= 50% on that question
         label_to_struggling_students = {}
         for s_id, s_data in students_with_risk.items():
-            s_name = s_data['submission'].student_name or f"HS{s_id}"
+            s_name = student_id_to_name[int(s_id)]
             for q_id, q_data in s_data['results'].items():
                 label = q_data['label']
                 if q_data['score'] <= (q_data['maxScore'] / 2.0):
                     label_to_struggling_students.setdefault(label, set()).add(s_name)
 
-        # For each AI error, compute affected students from affected_questions
+        # For each AI error, resolve affected students
         for err in errors_ai:
-            q_labels = err.get('affected_questions', []) or err.get('questionIds', [])
-            affected = set()
-            for label in q_labels:
-                affected.update(label_to_struggling_students.get(label, set()))
-            err['_resolved_affected_students'] = list(affected)
+            affected_names = set()
+            # 1. Primary: Use explicit student IDs from the AI
+            student_ids = err.get('affectedStudentIds', [])
+            if student_ids:
+                for s_id in student_ids:
+                    try:
+                        s_name = student_id_to_name.get(int(s_id))
+                        if s_name:
+                            affected_names.add(s_name)
+                    except (ValueError, TypeError):
+                        continue
+            
+            # 2. Fallback: Determine deterministically from affected questions if no IDs provided
+            if not affected_names:
+                q_labels = err.get('affected_questions', []) or err.get('questionIds', [])
+                for label in q_labels:
+                    affected_names.update(label_to_struggling_students.get(label, set()))
+            
+            err['_resolved_affected_students'] = list(affected_names)
 
         # 1. Build Students List
         students_list = []
@@ -363,11 +499,11 @@ Groups:
                     "score": q_data['score'],
                     "maxScore": q_data['maxScore'],
                     "status": q_data['status'],
-                    "topic": topics_ai.get(q_data['label'], "Ch\u01b0a ph\u00e2n lo\u1ea1i")
+                    "topic": topics_ai.get(q_data['label'], "Chưa phân loại")
                 })
 
             student_name = data['submission'].student_name or f"HS{s_id}"
-            # Tag which AI error patterns this student is affected by (deterministic)
+            # Tag which AI error patterns this student is affected by
             student_error_tags = []
             for err in errors_ai:
                 if student_name in err.get('_resolved_affected_students', []):
@@ -395,13 +531,17 @@ Groups:
             affected_list = err.get('_resolved_affected_students', [])
             count = len(affected_list)
             perc = round((count / max(1, class_metrics['totalStudents'])) * 100)
+            
+            # Use fullDescription if rootCause is missing
+            root_cause = err.get('fullDescription') or err.get('rootCause', '')
+            
             common_errors.append({
                 "id": err.get('id', 'ERR_UNKNOWN'),
-                "tag": err.get('tag', 'L\u1ed7i kh\u00f4ng x\u00e1c \u0111\u1ecbnh'),
+                "tag": err.get('tag', 'Lỗi không xác định'),
                 "count": count,
                 "percentage": perc,
                 "severity": err.get('severity', 'medium'),
-                "rootCause": err.get('rootCause', ''),
+                "rootCause": root_cause,
                 "example": err.get('example', ''),
                 "affectedStudents": affected_list,
                 "questionIds": err.get('affected_questions', []),
@@ -456,10 +596,10 @@ Groups:
         for err in errors_ai:
             err_id = err.get('id', '')
             if err_id:
-                # Build affected students detailed list
+                # Use resolved names
+                affected_names = err.get('_resolved_affected_students', [])
                 aff_students_detailed = []
-                for s_name in err.get('affected_students', []):
-                    # Find student in students_list
+                for s_name in affected_names:
                     s_match = next((s for s in students_list if s['name'] == s_name), None)
                     if s_match:
                         aff_students_detailed.append({
@@ -469,9 +609,10 @@ Groups:
                             "score": s_match['score'],
                             "errors": err.get('affected_questions', [])
                         })
-                        
+                
+                root_cause = err.get('fullDescription') or err.get('rootCause', '')
                 error_detail_map[err_id] = {
-                    "fullDescription": err.get('rootCause', ''),
+                    "fullDescription": root_cause,
                     "commonMistakes": err.get('commonMistakes', []),
                     "affectedStudents": aff_students_detailed,
                     "relatedTopics": err.get('relatedTopics', []),
@@ -505,6 +646,10 @@ Groups:
                         "severity": err['severity']
                     })
 
+            # Also store just the string values for the high-level studentGroups array
+            g_error_strings = [e['tag'] for e in common_errors if any(s['name'] in e['affectedStudents'] for s in g_data['students'])]
+            g_weakness_strings = [w['question_label'] for w in group_weaknesses.get(g_name, [])]
+
             group_detail_map[g_name] = {
                 "name": g_data['name'],
                 "count": g_data['count'],
@@ -519,6 +664,11 @@ Groups:
         # 6. Format studentGroups array for dashboard
         student_groups_list = []
         for g_name, g_data in student_groups.items():
+             g_details = group_detail_map.get(g_name, {})
+             # Sort string arrays by occurrence or relevance
+             g_error_strings = [e['error'].split(' - ', 1)[-1] for e in sorted(g_details.get('commonErrors', []), key=lambda x: x['count'], reverse=True)[:3]]
+             g_weakness_strings = [w['topic'] for w in g_details.get('commonWeaknesses', [])[:3]]
+             
              student_groups_list.append({
                  "id": g_data['id'],
                  "name": g_data['name'],
@@ -526,8 +676,8 @@ Groups:
                  "count": g_data['count'],
                  "percentage": g_data.get('percentage', 0),
                  "averageScore": g_data.get('averageScore', 0),
-                 "commonErrors": [], # Dashboard expects empty array here usually
-                 "knowledgeGaps": [],
+                 "commonErrors": g_error_strings,
+                 "knowledgeGaps": g_weakness_strings,
                  "riskLevel": "low" if g_name in ["Giỏi", "Khá"] else ("medium" if g_name == "TB" else "high")
              })
 

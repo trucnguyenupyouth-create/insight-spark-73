@@ -117,9 +117,11 @@ export function ErrorAnalysis({ errors, totalStudents, onErrorClick }: ErrorAnal
                         </div>
                       </div>
 
-                      <p className="text-sm text-muted-foreground italic">
-                        Ví dụ: "{error.example}"
-                      </p>
+                      {error.example && error.example.trim() !== "" ? (
+                        <p className="text-sm text-muted-foreground italic">
+                          Ví dụ: "{error.example}"
+                        </p>
+                      ) : null}
 
                       <div className="space-x-2">
                         <Button

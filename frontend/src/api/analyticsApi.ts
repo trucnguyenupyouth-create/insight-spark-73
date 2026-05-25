@@ -7,8 +7,13 @@ export const supabase = createClient(
 );
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS === 'true';
 
-const getHeaders = async () => {
+const getHeaders = async (): Promise<Record<string, string>> => {
+  // In dev bypass, skip auth header — backend has no auth enforced locally
+  if (DEV_BYPASS) {
+    return { 'Content-Type': 'application/json' };
+  }
   const { data: { session } } = await supabase.auth.getSession();
   return {
     'Authorization': `Bearer ${session?.access_token}`,
@@ -25,7 +30,7 @@ export const fetchExams = async (): Promise<ExamSummary[]> => {
 
 export const fetchAnalytics = async (examId: number, force = false): Promise<AnalyticsData> => {
   const headers = await getHeaders();
-  const endpoint = force ? `${API_URL}/api/exams/${examId}/analytics/refresh/` : `${API_URL}/api/exams/${examId}/analytics/`;
+  const endpoint = force ? `${API_URL}/api/exams/${examId}/refresh/` : `${API_URL}/api/exams/${examId}/analytics/`;
   const method = force ? 'POST' : 'GET';
   
   const res = await fetch(endpoint, { method, headers });

@@ -27,7 +27,7 @@ class Submission(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.DO_NOTHING)
     student_name = models.CharField(max_length=255, blank=True, null=True)
     override_total_score = models.FloatField(blank=True, null=True)
-    report_score = models.FloatField(blank=True, null=True)
+    # report_score does not exist in this production schema — omitted intentionally
     created_at = models.DateTimeField()
 
     class Meta:
@@ -45,7 +45,7 @@ class VisionGradingResult(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'vision_grading_visiongradingresult'
+        db_table = 'vision_grading_results'
 
 class VisionGradingStep(models.Model):
     grading_result = models.ForeignKey(VisionGradingResult, on_delete=models.DO_NOTHING)
@@ -56,7 +56,7 @@ class VisionGradingStep(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'vision_grading_visiongradingstep'
+        db_table = 'vision_grading_steps'
 
 
 # Dashboard-owned cache table
@@ -68,5 +68,5 @@ class ExamAnalyticsCache(models.Model):
     version = models.IntegerField(default=1)
 
     class Meta:
-        managed = True
-        db_table = 'dashboard_examanalyticscache'
+        managed = False
+        db_table = 'exam_analytics_cache'
