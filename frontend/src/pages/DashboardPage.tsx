@@ -37,8 +37,13 @@ const DashboardPage = () => {
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const { toast } = useToast();
 
-  // Live analytics data from the backend
-  const { data: analyticsData, loading, error: apiError, refresh } = useExamAnalytics(examId);
+  // Live analytics data from the backend — loads from cache only on mount
+  const { data: analyticsData, loading, error: apiError, loadCached, refresh } = useExamAnalytics(examId);
+
+  // Auto-load cached data on mount — does NOT trigger AI computation
+  useEffect(() => {
+    if (examId) loadCached();
+  }, [examId]);
 
   // Use live data, or empty defaults while loading
   const examMeta = analyticsData?.examMeta ?? { name: "Đang tải...", grade_level: 0, topic: "N/A", computed_at: "" };
@@ -145,6 +150,34 @@ const DashboardPage = () => {
         </div>
       )}
 
+      {/* Not-computed empty state — shown when no cache exists yet */}
+      {!loading && analyticsData && (analyticsData as any).status === 'not_computed' && (
+        <div className="flex flex-col items-center justify-center py-24 gap-6 text-center">
+          <div className="w-20 h-20 rounded-3xl bg-primary/5 border border-primary/10 flex items-center justify-center">
+            <BarChart3 className="w-10 h-10 text-primary/40" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black tracking-tight">Chưa có phân tích AI</h2>
+            <p className="text-muted-foreground max-w-sm">
+              Bài thi <strong>{(analyticsData as any).examMeta?.name || `#${examId}`}</strong> chưa được phân tích. Nhấn nút bên dưới để bắt đầu.
+            </p>
+          </div>
+          <Button
+            size="lg"
+            onClick={refresh}
+            disabled={loading}
+            className="bg-primary shadow-lg shadow-primary/20 font-bold"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Chạy phân tích AI ngay
+          </Button>
+          <p className="text-xs text-muted-foreground">Thời gian xử lý khoảng 1–2 phút</p>
+        </div>
+      )}
+
+      {/* Main dashboard content — only shown when analytics cache exists */}
+      {analyticsData && (analyticsData as any).status !== 'not_computed' && (
+        <>
       {/* Header Info */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 pb-6 border-b border-border/50">
         <div className="space-y-1">
@@ -286,6 +319,8 @@ const DashboardPage = () => {
             });
           }}
         />
+      )}
+        </>
       )}
     </DashboardLayout>
   );

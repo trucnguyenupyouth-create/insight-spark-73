@@ -27,12 +27,26 @@ class Submission(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.DO_NOTHING)
     student_name = models.CharField(max_length=255, blank=True, null=True)
     override_total_score = models.FloatField(blank=True, null=True)
-    # report_score does not exist in this production schema — omitted intentionally
+    # report_score does not exist as a numeric field — use SubmissionReport.report_markdown instead
     created_at = models.DateTimeField()
 
     class Meta:
         managed = False
         db_table = 'submissions_submission'
+
+class SubmissionReport(models.Model):
+    """Read-only mirror of vision_submission_reports. Contains the AI-generated
+    report markdown which embeds the authoritative final score (e.g. '5.25/10').
+    This is the same score used by CSV/Excel export — priority 2 after override_total_score."""
+    submission = models.OneToOneField(Submission, on_delete=models.DO_NOTHING, related_name='report')
+    report_markdown = models.TextField(blank=True, null=True)
+    short_summary = models.TextField(blank=True, null=True)
+    generated_at = models.DateTimeField()
+    model_name = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'vision_submission_reports'
 
 class VisionGradingResult(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.DO_NOTHING)

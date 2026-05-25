@@ -36,32 +36,42 @@ class ExamAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['get'])
     def analytics(self, request, pk=None):
         exam = self.get_object()
-        
-        force = request.query_params.get('force', 'false').lower() == 'true'
-        
-        service = ExamAnalyticsService()
-        result = service.compute_analytics(exam.id, force_refresh=force)
-        
+
+        # Check for cached analytics first — do NOT auto-trigger AI computation on GET
+        cache = ExamAnalyticsCache.objects.filter(exam_id=exam.id).first()
+
+        if not cache:
+            # No cache exists yet — return a pending state without triggering AI
+            return Response({
+                "status": "not_computed",
+                "message": "Phân tích AI chưa được thực hiện cho bài thi này. Nhấn 'Làm mới (AI)' để bắt đầu.",
+                "examMeta": {
+                    "id": exam.id,
+                    "name": exam.name,
+                    "grade_level": exam.grade_level,
+                    "topic": exam.topic,
+                    "computed_at": None,
+                    "model_used": None
+                }
+            }, status=status.HTTP_200_OK)
+
+        # Cache exists — return it directly without re-computing
+        result = cache.analytics_json
         if "error" in result:
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
-            
-        # Add exam metadata
-        cache = ExamAnalyticsCache.objects.filter(exam_id=exam.id).first()
-        computed_at = cache.computed_at if cache else timezone.now()
-        model_used = cache.model_name if cache else service.model_name
-        
+
         final_payload = {
             "examMeta": {
                 "id": exam.id,
                 "name": exam.name,
                 "grade_level": exam.grade_level,
                 "topic": exam.topic,
-                "computed_at": computed_at,
-                "model_used": model_used
+                "computed_at": cache.computed_at,
+                "model_used": cache.model_name
             }
         }
         final_payload.update(result)
-        
+
         return Response(final_payload)
 
     @action(detail=True, methods=['post'])

@@ -1,7 +1,7 @@
 import json
 import logging
 from django.db.models import Sum, Q
-from ..models import VisionGradingResult, VisionGradingStep, ExamAnalyticsCache, Submission, Exam, Question
+from ..models import VisionGradingResult, VisionGradingStep, ExamAnalyticsCache, Submission, Exam, Question, SubmissionReport
 from google import genai
 from google.genai import types as genai_types
 import google.generativeai as legacy_genai
@@ -53,12 +53,12 @@ class ExamAnalyticsService:
         logger.info(f"Computing analytics for exam {exam_id}")
         
         # --- Phase 1: Deterministic Data ---
-        exam, questions, submissions, results, steps = self._load_data(exam_id)
+        exam, questions, submissions, results, steps, reports = self._load_data(exam_id)
         
         if not submissions:
             return {"error": "No submissions found for this exam"}
 
-        score_matrix = self._build_score_matrix(submissions, results, questions)
+        score_matrix = self._build_score_matrix(submissions, results, questions, reports)
         students_with_groups = self._assign_groups(score_matrix)
         class_metrics = self._compute_class_metrics(students_with_groups)
         students_with_risk = self._compute_risk_scores(students_with_groups, steps)
@@ -112,11 +112,27 @@ class ExamAnalyticsService:
         
         res_ids = [r.id for r in results]
         steps = list(VisionGradingStep.objects.filter(grading_result_id__in=res_ids))
-        
-        return exam, questions, submissions, results, steps
 
-    def _build_score_matrix(self, submissions, results, questions):
-        """Builds deduplicated score matrix mapping (sub_id, q_id) to score and status."""
+        # Load AI report markdown per submission (contains authoritative score like '5.25/10')
+        reports = {r.submission_id: r for r in SubmissionReport.objects.filter(submission_id__in=sub_ids)}
+        
+        return exam, questions, submissions, results, steps, reports
+
+    def _build_score_matrix(self, submissions, results, questions, reports=None):
+        """Builds deduplicated score matrix mapping (sub_id, q_id) to score and status.
+        
+        Score priority (same as CSV/Excel export):
+        1. Submission.override_total_score  — teacher manual override
+        2. SubmissionReport.report_markdown  — regex-extracted score (e.g. '5.25/10') — authoritative
+        3. raw_sum of VisionGradingResult.score — fallback if no report exists
+        """
+        import re
+        REPORT_SCORE_RE = re.compile(
+            r'\u0110i\u1ec3m(?:\s+s\u1ed1)?\s*[:]\s*(?:\*\*|)\s*([\d\.]+(?:/\d+)?)',
+            re.IGNORECASE
+        )
+        reports = reports or {}
+
         # Fix is_latest duplication by taking the most recently updated result per (submission, question)
         results.sort(key=lambda x: x.updated_at, reverse=True)
         dedup_results = {}
@@ -138,7 +154,10 @@ class ExamAnalyticsService:
                 else:
                     q_max_scores[q.id] = 1.0 # Ultimate fallback
 
-        # Normalize total score to 10-point scale if exam total max exceeds 10
+        # Total score priority:
+        # 1. override_total_score — teacher manual override
+        # 2. raw_sum — sum of VisionGradingResult.score (already 0.25-rounded per question by AI)
+        # NOTE: Do NOT normalize to 10. Matrix-mode exams have scores like 12.25 which IS correct.
         exam_max_total = sum(q_max_scores.values()) if q_max_scores else 10.0
 
         matrix = {}
@@ -148,7 +167,6 @@ class ExamAnalyticsService:
                 'total_score': 0.0,
                 'results': {}
             }
-            # Use override score if available, otherwise sum of question scores
             raw_sum = 0.0
             for q in questions:
                 r = dedup_results.get((s.id, q.id))
@@ -173,15 +191,23 @@ class ExamAnalyticsService:
                 }
                 raw_sum += score
             
-            # Scoring priority: override_total_score > normalized raw sum
+            # Score priority chain (matches CSV/Excel export logic):
+            # 1. override_total_score — teacher manual override (highest priority)
+            # 2. report_markdown regex — AI report's stated score like "5.25/10" (authoritative)
+            # 3. raw_sum of VisionGradingResult.score — fallback
             if getattr(s, 'override_total_score', None) is not None:
-                matrix[s.id]['total_score'] = min(float(s.override_total_score), 10.0)
+                matrix[s.id]['total_score'] = float(s.override_total_score)
             else:
-                # Normalize to 10-point scale if exam max total differs from 10
-                if exam_max_total > 0 and abs(exam_max_total - 10.0) > 0.01:
-                    matrix[s.id]['total_score'] = round((raw_sum / exam_max_total) * 10.0, 2)
-                else:
-                    matrix[s.id]['total_score'] = round(raw_sum, 2)
+                report = reports.get(s.id)
+                report_score = None
+                if report and report.report_markdown:
+                    match = REPORT_SCORE_RE.search(report.report_markdown)
+                    if match:
+                        try:
+                            report_score = float(match.group(1).split('/')[0])
+                        except (ValueError, IndexError):
+                            pass
+                matrix[s.id]['total_score'] = report_score if report_score is not None else round(raw_sum, 2)
 
         return matrix
 
