@@ -66,12 +66,12 @@ export function MetricCard({
           )}
         </div>
         
-        <div className="flex flex-col">
-          <p className={cn("text-3xl font-black tracking-tighter transition-colors duration-300", getValueColor())}>
+        <div className="flex flex-col min-w-0">
+          <p className={cn("text-2xl lg:text-3xl font-black tracking-tighter transition-colors duration-300 break-all leading-tight", getValueColor())}>
             {value}
           </p>
           {subtitle && (
-            <p className="text-[11px] font-medium text-muted-foreground mt-1 min-h-[1rem]">
+            <p className="text-[11px] font-medium text-muted-foreground mt-1 min-h-[1rem] truncate">
               {subtitle}
             </p>
           )}

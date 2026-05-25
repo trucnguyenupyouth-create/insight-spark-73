@@ -192,17 +192,16 @@ export function ErrorDetailModal({ error, isOpen, onClose, onAction }: ErrorDeta
               <h3 className="font-semibold mb-3">Đề xuất hành động khắc phục</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {errorDetails.suggestedActions.map((action: any, index: number) => (
-                  <Button
+                  <div
                     key={index}
-                    variant="outline"
                     onClick={() => handleAction(action.type)}
-                    className="p-5 h-auto flex-col items-start text-left space-y-2 border-primary/10 hover:border-primary/40 hover:bg-primary/5 transition-all group relative overflow-hidden shrink-0"
+                    className="p-5 flex flex-col gap-2 border border-primary/10 hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer rounded-lg relative overflow-hidden group"
                   >
-                    <div className="font-bold text-foreground group-hover:text-primary transition-colors">{action.title}</div>
-                    <div className="text-[11px] text-muted-foreground leading-relaxed line-clamp-3 whitespace-normal">
+                    <div className="font-bold text-foreground group-hover:text-primary transition-colors text-sm leading-snug break-words whitespace-normal">{action.title}</div>
+                    <div className="text-[11px] text-muted-foreground leading-relaxed line-clamp-4 whitespace-normal break-words">
                       {action.description}
                     </div>
-                  </Button>
+                  </div>
                 ))}
               </div>
               

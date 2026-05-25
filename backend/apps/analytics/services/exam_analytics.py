@@ -5,7 +5,8 @@ from ..models import VisionGradingResult, VisionGradingStep, ExamAnalyticsCache,
 from google import genai
 from google.genai import types as genai_types
 import google.generativeai as legacy_genai
-from .analytics_prompt import ANALYTICS_SYSTEM_PROMPT
+from .analytics_prompt import ANALYTICS_SYSTEM_PROMPT, get_analytics_system_prompt
+from .curriculum_context import get_curriculum_constants_for_grade
 from .supabase_cache import get_cached_analytics, upsert_cached_analytics
 
 logger = logging.getLogger(__name__)
@@ -137,6 +138,9 @@ class ExamAnalyticsService:
                 else:
                     q_max_scores[q.id] = 1.0 # Ultimate fallback
 
+        # Normalize total score to 10-point scale if exam total max exceeds 10
+        exam_max_total = sum(q_max_scores.values()) if q_max_scores else 10.0
+
         matrix = {}
         for s in submissions:
             matrix[s.id] = {
@@ -169,12 +173,15 @@ class ExamAnalyticsService:
                 }
                 raw_sum += score
             
-            # Scoring priority: override_total_score > raw sum
-            # (report_score column does not exist in this production schema)
+            # Scoring priority: override_total_score > normalized raw sum
             if getattr(s, 'override_total_score', None) is not None:
-                matrix[s.id]['total_score'] = float(s.override_total_score)
+                matrix[s.id]['total_score'] = min(float(s.override_total_score), 10.0)
             else:
-                matrix[s.id]['total_score'] = raw_sum
+                # Normalize to 10-point scale if exam max total differs from 10
+                if exam_max_total > 0 and abs(exam_max_total - 10.0) > 0.01:
+                    matrix[s.id]['total_score'] = round((raw_sum / exam_max_total) * 10.0, 2)
+                else:
+                    matrix[s.id]['total_score'] = round(raw_sum, 2)
 
         return matrix
 
@@ -431,7 +438,7 @@ TỔNG SỐ HỌC SINH: {total_students}
             
             # Configure Thinking Config conditionally
             config_kwargs = {
-                "system_instruction": ANALYTICS_SYSTEM_PROMPT,
+                "system_instruction": get_analytics_system_prompt(getattr(exam, 'grade_level', None)),
                 "response_mime_type": "application/json",
             }
             if "flash" in self.model_name.lower() or "thinking" in self.model_name.lower():

@@ -97,10 +97,10 @@ export function AssistantWelcome({ suggestions, insight, onActionClick, onCompos
                       </div>
                     </div>
                     <div>
-                      <h4 className="font-black text-lg leading-tight mb-2 group-hover:text-primary transition-colors">
+                      <h4 className="font-black text-base leading-snug mb-2 group-hover:text-primary transition-colors break-words">
                         {primarySuggestion.title}
                       </h4>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
+                      <p className="text-sm text-muted-foreground leading-relaxed break-words">
                         {primarySuggestion.description}
                       </p>
                     </div>

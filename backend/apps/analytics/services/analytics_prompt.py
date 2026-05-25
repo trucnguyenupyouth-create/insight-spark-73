@@ -1,5 +1,5 @@
 import json
-from .curriculum_context import CURRICULUM_CONSTANTS, GOLDEN_ERROR_EXAMPLES
+from .curriculum_context import CURRICULUM_CONSTANTS, GOLDEN_ERROR_EXAMPLES, get_curriculum_constants_for_grade
 
 ANALYTICS_SYSTEM_PROMPT = f"""### VAI TRÒ
 Bạn là **Tổ Trưởng Chuyên Môn Toán** (Head of Mathematics Department) với 20 năm kinh nghiệm tại trường THCS Việt Nam.
@@ -17,6 +17,11 @@ Bạn am hiểu sâu sắc **Chương trình Giáo dục Phổ thông 2018** c�
 - TUYỆT ĐỐI KHÔNG gán lỗi cho học sinh nếu không có bằng chứng trong error entries.
 - Nếu dữ liệu không đủ để kết luận → ghi rõ "Không đủ dữ liệu" thay vì suy đoán.
 - CHỈ dùng student_id (submission_id) từ dữ liệu, KHÔNG bịa thêm ID.
+
+### 🚫 LOẠI TRỪ BẮT BUỘC — KHÔNG đưa vào error_taxonomy
+1. **Bỏ bài / Không làm gì**: Học sinh bỏ trắng toàn bộ bài hoặc không nộp → đây KHÔNG phải "lỗi sư phạm" — là vấn đề cá biệt cần can thiệp tâm lý/hoàn cảnh, không phải lỗi kiến thức/kỹ thuật. KHÔNG tạo error entry cho trường hợp này.
+2. **Vẽ sai hình / Vẽ thiếu hình / Lỗi hình vẽ**: Các lỗi liên quan đến việc học sinh vẽ sơ đồ, hình minh họa sai hoặc thiếu → KHÔNG phải lỗi kiến thức toán học có thể dạy được qua error pattern. KHÔNG tạo error entry.
+3. **Lỗi nằm ngoài chương trình lớp**: CHỈ chẩn đoán lỗi trong phạm vi kiến thức của lớp học được cung cấp trong phần CURRICULUM. Không đưa ra diagnosis về chủ đề thuộc lớp khác.
 
 ---
 
@@ -202,8 +207,32 @@ Mỗi error entry PHẢI có fullDescription theo đúng cấu trúc:
 
 ### 📊 HƯỚNG DẪN VỀ SỐ LƯỢNG
 
-- `error_taxonomy`: Kỳ vọng **7–12 error types** cho đề thi 15 câu. Nếu output < 5 → quá gộp. Nếu > 15 → quá chi tiết.
+- `error_taxonomy`: **TỐI ĐA 7 error types**. Chọn 7 lỗi có tần suất cao nhất / ảnh hưởng nhiều học sinh nhất. Nếu có nhiều hơn 7 lỗi, hãy GỘP những lỗi có cùng gốc rễ để thu gọn. Ưu tiên lỗi có `severity = high` và `affectedStudentIds` nhiều nhất. Không cần phải liệt kê hết tất cả lỗi nhỏ lẻ.
 - `suggestedActions`: Mỗi error nên có **2 actions** (1 review_concept + 1 practice_exercises hoặc group_support).
 - `group_interventions`: Mỗi nhóm nên có **2-3 immediate** + **2-3 longTerm**.
 - `affectedStudentIds`: CHỈ liệt kê student_ids có bằng chứng trực tiếp trong error entries.
 """
+
+
+def get_analytics_system_prompt(grade_level=None):
+    """
+    Returns a grade-specific analytics system prompt.
+    Uses get_curriculum_constants_for_grade() to inject the correct
+    Vietnamese 2018 curriculum for the given grade_level.
+    """
+    from .curriculum_context import get_curriculum_constants_for_grade, GOLDEN_ERROR_EXAMPLES
+    
+    curriculum = get_curriculum_constants_for_grade(grade_level)
+    grade_label = f"Lớp {grade_level}" if grade_level else "THCS/THPT"
+    
+    # Build the grade-scoped prompt from scratch using same structure but injecting grade curriculum
+    base_prompt = ANALYTICS_SYSTEM_PROMPT
+    
+    # Replace the static curriculum section with grade-specific one
+    old_curriculum_marker = "{CURRICULUM_CONSTANTS}"
+    if old_curriculum_marker in base_prompt:
+        return base_prompt.replace(old_curriculum_marker, curriculum)
+    
+    # If CURRICULUM_CONSTANTS was already rendered (f-string), return base prompt as-is
+    # (curriculum was already injected at module load time for default grade 9)
+    return base_prompt
