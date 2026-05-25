@@ -6,7 +6,7 @@ export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder'
 );
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API_URL = import.meta.env.VITE_API_URL === 'RELATIVE' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8001');
 const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS === 'true';
 
 const getHeaders = async (): Promise<Record<string, string>> => {
