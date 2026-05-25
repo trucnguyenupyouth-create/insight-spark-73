@@ -20,8 +20,6 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
-import { generateActionSuggestions, mockClassData } from "@/utils/actionEngine";
-import { sentActions, studentProgress } from "@/data/examData";
 import { useToast } from "@/hooks/use-toast";
 import { useExamAnalytics } from "@/hooks/useExamAnalytics";
 
@@ -50,8 +48,22 @@ const DashboardPage = () => {
   const errorDetailMap = analyticsData?.errorDetailMap ?? {};
   const groupDetailMap = analyticsData?.groupDetailMap ?? {};
 
-  // Generate smart suggestions using the action engine
-  const suggestions = generateActionSuggestions(mockClassData);
+  // Extract aiInsights from live API data
+  const aiInsights = analyticsData?.aiInsights;
+
+  // Build the urgent action suggestion for AssistantWelcome
+  const urgentSuggestion = aiInsights?.urgentAction ? {
+    id: "ai_urgent_action",
+    type: "urgent" as const,
+    title: aiInsights.urgentAction.title,
+    description: aiInsights.urgentAction.description,
+    action: "Phản hồi cá nhân",
+    priority: 10
+  } : null;
+  const suggestions = urgentSuggestion ? [urgentSuggestion] : [];
+
+  // Use aiInsights.suggestedActions for ActionTracker ("Theo dõi hành động")
+  const suggestedActions = aiInsights?.suggestedActions ?? [];
 
   // Event handlers
   const handleErrorClick = (error: any) => {
@@ -174,7 +186,7 @@ const DashboardPage = () => {
       {/* Assistant Intelligence Center */}
       <AssistantWelcome 
         suggestions={suggestions} 
-        insight={`AI đã phát hiện ${commonErrors.length} mẫu lỗi sai phổ biến. Nhóm Yếu đang gặp khó khăn với các khái niệm căn bản.`}
+        insight={aiInsights?.overviewInsight || (commonErrors.length > 0 ? `AI đã phát hiện ${commonErrors.length} mẫu lỗi sai phổ biến. Nhóm Yếu đang gặp khó khăn với các khái niệm căn bản.` : undefined)}
         onActionClick={handleActionClick}
         onComposeAction={handleComposeAction}
       />
@@ -220,8 +232,8 @@ const DashboardPage = () => {
           {/* Action Tracking */}
           <div className="lg:col-span-6">
             <ActionTracker
-              sentActions={sentActions}
-              studentProgress={studentProgress}
+              sentActions={suggestedActions as any[]}
+              studentProgress={[]}
               onRevoke={handleRevokeAction}
               onViewDetails={(id) => toast({ title: "Chi tiết", description: `Xem chi tiết hành động ${id}` })}
               className="h-full"

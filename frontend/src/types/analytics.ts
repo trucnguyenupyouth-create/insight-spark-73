@@ -22,8 +22,35 @@ export interface ExamSummary {
   analytics_computed_at?: string;
 }
 
-// ... the rest of the existing types from insight-spark-73-ref can be imported or merged, 
-// I will just define what's needed for the top level.
+// --- AI Insights types ---
+
+export interface UrgentAction {
+  studentName: string;
+  studentScore: number;
+  title: string;
+  description: string;
+  triggerRule: string;
+}
+
+export interface SuggestedAction {
+  id: string;
+  type: "class" | "group" | "individual" | "parent";
+  subject: string;
+  content: string;
+  recipients: string[];
+  recipientNames: string[];
+  sentAt: string;
+  status: "suggested" | "sent" | "delivered" | "read" | "responded";
+  canRevoke: boolean;
+}
+
+export interface AiInsights {
+  overviewInsight: string;
+  urgentAction: UrgentAction | null;
+  suggestedActions: SuggestedAction[];
+}
+
+// --- Main AnalyticsData ---
 
 export interface AnalyticsData {
   examMeta: ExamMeta;
@@ -34,4 +61,5 @@ export interface AnalyticsData {
   topics: any[];
   errorDetailMap: Record<string, any>;
   groupDetailMap: Record<string, any>;
+  aiInsights?: AiInsights;
 }

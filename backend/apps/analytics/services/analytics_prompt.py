@@ -102,6 +102,23 @@ Trả về ĐÚNG JSON hợp lệ, KHÔNG có markdown hay code block.
     "Khá": {{ "immediate": [], "longTerm": [] }},
     "TB": {{ "immediate": [], "longTerm": [] }},
     "Yếu": {{ "immediate": [], "longTerm": [] }}
+  }},
+  "ai_insights": {{
+    "overviewInsight": "<1–2 câu. Tóm tắt MỘT hành động LOW-HANGING FRUIT quan trọng nhất cho CẢ LỚP ngay bây giờ — phải cụ thể: đề cập đến tên lỗi hoặc số lượng học sinh bị ảnh hưởng. KHÔNG viết chung chung như 'cần ôn tập thêm'. Ví dụ đúng: 'Hơn 50% lớp viết n(Ω) thay vì liệt kê tập hợp Ω — thầy cô nên dành 10 phút đầu tiết tới viết trực tiếp ví dụ trên bảng để xây phản xạ ký hiệu.'",
+    "urgentAction": {{
+      "title": "<Tiêu đề can thiệp khẩn cấp cho 1 học sinh yếu nhất — cụ thể, có tên học sinh>",
+      "description": "<Mô tả 2–3 câu. Giáo viên cần làm GÌ, KHI NÀO, VỚI AI cho học sinh này. PHẢI đề cập đến điểm số cụ thể và lỗi nổi bật nhất của học sinh đó.>"
+    }},
+    "suggestedActions": [
+      {{
+        "subject": "<Tiêu đề thông báo gửi cho cả lớp — liên quan đến lỗi phổ biến nhất>",
+        "content": "<Nội dung thông báo 3–5 câu gửi cho cả lớp. Nêu rõ: lỗi gì, bao nhiêu học sinh mắc, học sinh cần làm gì cụ thể để sửa. Giọng văn thân thiện, khuyến khích.>"
+      }},
+      {{
+        "subject": "<Tiêu đề thông báo cá nhân gửi cho học sinh yếu nhất — có tên học sinh>",
+        "content": "<Nội dung thông báo cá nhân 3–5 câu. Ghi rõ tên học sinh, điểm số, điểm yếu cụ thể, và bước tiếp theo học sinh cần làm. Giọng văn động viên, không chê bai.>"
+      }}
+    ]
   }}
 }}
 ```
@@ -122,6 +139,24 @@ Mỗi error entry PHẢI có fullDescription theo đúng cấu trúc:
 
 ---
 {GOLDEN_ERROR_EXAMPLES}
+
+---
+
+### 📝 HƯỚNG DẪN CHO ai_insights
+
+**overviewInsight:**
+- ✅ ĐÚNG: "47% học sinh nhầm ký hiệu Ω vs n(Ω) và 41% thiếu bước 'Xét Hiệu' — thầy cô nên dành 10 phút đầu tiết tới chữa 2 lỗi này trực tiếp trên bảng."
+- ❌ SAI: "Học sinh cần ôn tập thêm về các chủ đề đã học." → Quá chung chung, không có con số, không có hành động cụ thể.
+
+**urgentAction.title/description:**
+- Bắt buộc dựa vào dữ liệu từ phần LOWEST_SCORING_STUDENT được cung cấp trong prompt.
+- ✅ ĐÚNG: title="Gặp riêng em Nguyễn Văn A — 0 điểm", description="Em A chưa làm được bất kỳ câu nào (0/10), cần gặp riêng trước tiết học tới, kiểm tra xem em có hiểu đề bài không và hỗ trợ ôn lại kiến thức nền."
+- ❌ SAI: "Học sinh yếu cần được hỗ trợ thêm." → Không tên, không điểm, không hành động.
+
+**suggestedActions:**
+- Item 1 (class): Dựa trên lỗi có count/percentage cao nhất trong error_taxonomy.
+- Item 2 (individual): Dựa trên urgentAction — cùng học sinh đó.
+- Cả 2 phải dùng tiếng Việt tự nhiên, như giáo viên đang viết thông báo thật.
 
 ---
 

@@ -373,6 +373,16 @@ class ExamAnalyticsService:
             group_text_lines.append("")
         group_text = "\n".join(group_text_lines)
 
+        # --- Build lowest-scoring student context for ai_insights ---
+        all_students_scores = [
+            (s_data['submission'].student_name or f"HS{s_id}", s_data['total_score'], int(s_id))
+            for s_id, s_data in score_matrix.items()
+        ]
+        all_students_scores.sort(key=lambda x: x[1])
+        lowest_name, lowest_score, lowest_id = all_students_scores[0] if all_students_scores else ("Chưa xác định", 0, 0)
+        total_students = len(all_students_scores)
+        class_avg = sum(s[1] for s in all_students_scores) / total_students if total_students else 0
+
         prompt = f'''Đề thi: {exam.name} (Lớp {exam.grade_level})
 
 ═══════════════════════════════════════════
@@ -399,6 +409,16 @@ HIỆU SUẤT TỪNG NHÓM THEO CÂU
 PHÂN NHÓM HỌC SINH
 ═══════════════════════════════════════════
 {group_text}
+═══════════════════════════════════════════
+THÔNG TIN BỔ SUNG — DÙNG CHO ai_insights
+═══════════════════════════════════════════
+LOWEST_SCORING_STUDENT:
+  Tên: {lowest_name}
+  Điểm: {lowest_score}/10
+  Submission ID: {lowest_id}
+
+DIỂM TRUNG BÌNH LẬP: {class_avg:.2f}/10
+TỔNG SỐ HỌC SINH: {total_students}
 '''
         try:
             # Configure API key — prefer explicitly passed key, then fall back to settings
@@ -443,7 +463,12 @@ PHÂN NHÓM HỌC SINH
             return {
                 "question_topics": {},
                 "error_taxonomy": [],
-                "group_interventions": {}
+                "group_interventions": {},
+                "ai_insights": {
+                    "overviewInsight": "",
+                    "urgentAction": {"title": "", "description": ""},
+                    "suggestedActions": [{"subject": "", "content": ""}, {"subject": "", "content": ""}]
+                }
             }
 
     def _assemble_final_output(self, class_metrics, students_with_risk, student_groups, group_weaknesses, ai_response, score_matrix, questions, steps):
@@ -681,6 +706,72 @@ PHÂN NHÓM HỌC SINH
                  "riskLevel": "low" if g_name in ["Giỏi", "Khá"] else ("medium" if g_name == "TB" else "high")
              })
 
+        # 7. Build aiInsights — merge AI-generated narrative with deterministic student data
+        from datetime import datetime, timezone
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        raw_ai_insights = ai_response.get("ai_insights", {})
+
+        # Find lowest-scoring student from the already-built students_list
+        lowest_student = None
+        if students_list:
+            lowest_student = min(students_list, key=lambda s: s["score"])
+
+        urgent_action_ai = raw_ai_insights.get("urgentAction", {})
+        overview_insight = raw_ai_insights.get("overviewInsight", "")
+
+        # Build urgentAction with deterministic student info merged with AI text
+        urgent_action = None
+        if lowest_student:
+            urgent_action = {
+                "studentName": lowest_student["name"],
+                "studentScore": lowest_student["score"],
+                "title": urgent_action_ai.get("title", f"Hỗ trợ khẩn cấp — {lowest_student['name']}"),
+                "description": urgent_action_ai.get("description", f"Học sinh {lowest_student['name']} đạt {lowest_student['score']}/10, cần được can thiệp ngay."),
+                "triggerRule": "at_risk_student"
+            }
+
+        # Build suggestedActions — 2 AI-template messages enriched with metadata
+        raw_suggested = raw_ai_insights.get("suggestedActions", [{}, {}])
+        class_action_raw = raw_suggested[0] if len(raw_suggested) > 0 else {}
+        student_action_raw = raw_suggested[1] if len(raw_suggested) > 1 else {}
+
+        # Most common error for class-level action fallback
+        top_error_tag = common_errors[0]["tag"] if common_errors else "lỗi phổ biến"
+
+        suggested_actions = [
+            {
+                "id": f"ai_class_{int(datetime.now(timezone.utc).timestamp())}",
+                "type": "class",
+                "subject": class_action_raw.get("subject", f"Lưu ý lỗi phổ biến: {top_error_tag}"),
+                "content": class_action_raw.get("content", f"Kính gửi cả lớp, qua bài kiểm tra vừa rồi, nhiều bạn đang gặp khó khăn với lỗi '{top_error_tag}'. Các bạn hãy xem lại và thực hành thêm nhé."),
+                "recipients": ["all"],
+                "recipientNames": ["Toàn lớp"],
+                "sentAt": now_iso,
+                "status": "suggested",
+                "canRevoke": False
+            }
+        ]
+
+        if lowest_student:
+            suggested_actions.append({
+                "id": f"ai_student_{lowest_student['id']}_{int(datetime.now(timezone.utc).timestamp())}",
+                "type": "individual",
+                "subject": student_action_raw.get("subject", f"Hỗ trợ riêng — {lowest_student['name']}"),
+                "content": student_action_raw.get("content", urgent_action["description"] if urgent_action else f"Em {lowest_student['name']} cần được hỗ trợ thêm sau bài kiểm tra."),
+                "recipients": [str(lowest_student["id"])],
+                "recipientNames": [lowest_student["name"]],
+                "sentAt": now_iso,
+                "status": "suggested",
+                "canRevoke": False
+            })
+
+        ai_insights = {
+            "overviewInsight": overview_insight,
+            "urgentAction": urgent_action,
+            "suggestedActions": suggested_actions
+        }
+
         return {
             "classMetrics": class_metrics,
             "students": students_list,
@@ -688,5 +779,6 @@ PHÂN NHÓM HỌC SINH
             "studentGroups": student_groups_list,
             "topics": topics_list,
             "errorDetailMap": error_detail_map,
-            "groupDetailMap": group_detail_map
+            "groupDetailMap": group_detail_map,
+            "aiInsights": ai_insights
         }

@@ -24,7 +24,7 @@ interface SentAction {
   recipients: string[];
   recipientNames: string[];
   sentAt: string;
-  status: "sent" | "delivered" | "read" | "responded";
+  status: "suggested" | "sent" | "delivered" | "read" | "responded";
   canRevoke: boolean;
 }
 
@@ -80,6 +80,7 @@ export function ActionTracker({
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case "suggested": return "primary";
       case "sent": return "warning";
       case "delivered": return "primary";
       case "read": return "success";
@@ -90,6 +91,7 @@ export function ActionTracker({
 
   const getStatusLabel = (status: string) => {
     switch (status) {
+      case "suggested": return "🤖 Đề xuất AI";
       case "sent": return "Đã gửi";
       case "delivered": return "Đã nhận";
       case "read": return "Đã đọc";
@@ -130,6 +132,11 @@ export function ActionTracker({
         <h3 className="text-lg font-bold flex items-center tracking-tight">
           <BarChart3 className="w-5 h-5 mr-3 text-primary" />
           Theo dõi hành động
+          {sentActions.length > 0 && sentActions.every((a: any) => a.status === 'suggested') && (
+            <span className="ml-2 text-xs font-medium text-primary/70 bg-primary/10 px-2 py-0.5 rounded-full">
+              🤖 Gợi ý từ AI
+            </span>
+          )}
         </h3>
 
         <Tabs defaultValue="sent" className="w-full">
